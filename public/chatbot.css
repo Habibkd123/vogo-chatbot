@@ -1,0 +1,1060 @@
+/* ============================================================
+   VOGO CHATBOT - COMPLETE STYLES
+   Base UI + Phase B (Shopping List, Agenda, Products) + Dark Theme
+   ============================================================ */
+
+/* ============================================
+   CHAT BUBBLE BUTTON
+   ============================================ */
+#vogo-chat-bubble {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 999999;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+#vogo-chat-bubble:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+#vogo-chat-bubble svg {
+  width: 30px;
+  height: 30px;
+  fill: white;
+}
+
+/* ============================================
+   CHAT WINDOW
+   ============================================ */
+#vogo-chat-window {
+  position: fixed;
+  bottom: 90px;
+  right: 20px;
+  width: 380px;
+  height: 600px;
+  background: #0f1e3d;
+  border-radius: 16px;
+  box-shadow: 0 16px 56px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  z-index: 999998;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  overflow: hidden;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+#vogo-chat-window.hidden {
+  display: none;
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+/* ============================================
+   CHAT HEADER
+   ============================================ */
+.vogo-chat-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 16px 18px;
+  border-radius: 16px 16px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.vogo-header-content {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  flex: 1;
+}
+
+.vogo-header-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
+}
+
+.vogo-header-title {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.vogo-chat-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+/* Online status indicator (replaces language selector) */
+.vogo-status {
+  font-size: 11px;
+  opacity: 0.8;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: white;
+}
+
+.vogo-status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: #4ade80;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.3);
+  animation: statusPulse 2s infinite;
+}
+
+.vogo-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.vogo-chat-header .close-btn,
+#vogo-close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.vogo-chat-header .close-btn:hover,
+#vogo-close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* ============================================
+   VOICE REPLY TOGGLE BUTTON (header)
+   ============================================ */
+.vogo-voice-toggle-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+
+.vogo-voice-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
+  transform: scale(1.1);
+}
+
+/* Active (🔊 ON) state — green glow */
+.vogo-voice-toggle-btn--active {
+  background: rgba(74, 222, 128, 0.25) !important;
+  border-color: #4ade80 !important;
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
+  animation: voiceGlow 2s infinite;
+}
+
+@keyframes voiceGlow {
+  0%, 100% { box-shadow: 0 0 6px rgba(74, 222, 128, 0.35); }
+  50%       { box-shadow: 0 0 14px rgba(74, 222, 128, 0.6); }
+}
+
+/* ============================================
+   LANGUAGE SELECTOR — HIDDEN (auto-detected)
+   ============================================ */
+.vogo-language-selector {
+  display: none !important;
+}
+
+.vogo-language-selector button,
+.vogo-lang-btn {
+  display: none !important;
+}
+
+/* ============================================
+   MESSAGES CONTAINER
+   ============================================ */
+.vogo-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 14px;
+  background: #0f1e3d;
+  scroll-behavior: smooth;
+  display: flex;
+  flex-direction: column;
+}
+
+.vogo-chat-messages::-webkit-scrollbar {
+  width: 4px;
+}
+
+.vogo-chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.vogo-chat-messages::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+}
+
+.vogo-chat-messages::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================
+   MESSAGES
+   ============================================ */
+
+/* Bot Message Container */
+.vogo-bot-message-container {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  margin-bottom: 12px;
+  animation: slideIn 0.3s ease;
+}
+
+/* Bot Message Icon */
+.vogo-message-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #5b4fcf;
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Bot Message */
+.vogo-bot-message {
+  background: #142248;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 11px 14px;
+  border-radius: 12px 12px 12px 4px;
+  max-width: 82%;
+  line-height: 1.55;
+  color: #e8eaf6;
+  font-size: 14px;
+}
+
+.vogo-bot-message strong {
+  font-weight: 600;
+  color: #a89df7;
+}
+
+/* User Message */
+.vogo-user-message {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 11px 14px;
+  border-radius: 12px 12px 4px 12px;
+  margin-bottom: 12px;
+  max-width: 82%;
+  margin-left: auto;
+  box-shadow: 0 2px 10px rgba(91, 79, 207, 0.35);
+  animation: slideIn 0.3s ease;
+  line-height: 1.55;
+  font-size: 14px;
+}
+
+/* ============================================
+   PREDEFINED QUESTIONS
+   ============================================ */
+.vogo-predefined-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 6px 0 12px;
+}
+
+.vogo-question-btn {
+  background: #142248;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  padding: 11px 14px;
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  color: #e8eaf6;
+  line-height: 1.4;
+}
+
+.vogo-question-btn:hover {
+  background: #1a2d55;
+  border-color: #7c6ff7;
+  transform: translateX(4px);
+}
+
+.vogo-question-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: #7c6ff7;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.vogo-question-btn span {
+  flex: 1;
+}
+
+/* ============================================
+   TYPING INDICATOR
+   ============================================ */
+.vogo-typing-indicator-container {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  margin-bottom: 12px;
+  animation: slideIn 0.3s ease;
+}
+
+.vogo-typing-indicator {
+  display: flex;
+  gap: 4px;
+  padding: 11px 14px;
+  background: #142248;
+  border-radius: 12px 12px 12px 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.vogo-typing-indicator span {
+  width: 7px;
+  height: 7px;
+  background: #546a94;
+  border-radius: 50%;
+  animation: typingDot 1.3s infinite ease-in-out;
+}
+
+.vogo-typing-indicator span:nth-child(1) { animation-delay: 0s; }
+.vogo-typing-indicator span:nth-child(2) { animation-delay: 0.18s; }
+.vogo-typing-indicator span:nth-child(3) { animation-delay: 0.36s; }
+
+/* ============================================
+   CHAT INPUT
+   ============================================ */
+.vogo-chat-input {
+  padding: 12px 14px;
+  background: #142248;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  gap: 8px;
+  border-radius: 0 0 16px 16px;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.vogo-chat-input input[type="file"] {
+  display: none;
+}
+
+#vogo-attach {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #8fa3cc;
+  padding: 8px 12px;
+  border-radius: 22px;
+  cursor: pointer;
+  font-size: 18px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+#vogo-attach:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e8eaf6;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+#vogo-attach:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   VOICE MIC BUTTON
+   ============================================ */
+.vogo-mic-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #8fa3cc;
+  padding: 8px 12px;
+  border-radius: 22px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.vogo-mic-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e8eaf6;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Recording state - red pulsing */
+.vogo-mic-btn--recording {
+  background: rgba(239, 68, 68, 0.2) !important;
+  border-color: #ef4444 !important;
+  color: #ef4444 !important;
+  animation: micPulse 1s infinite;
+}
+
+/* Processing state - amber */
+.vogo-mic-btn--processing {
+  background: rgba(251, 191, 36, 0.15) !important;
+  border-color: #fbbf24 !important;
+  color: #fbbf24 !important;
+}
+
+@keyframes micPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  50%       { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+}
+
+.vogo-chat-input input {
+  flex: 1;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #0f1e3d;
+  padding: 10px 14px;
+  border-radius: 22px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+  color: #e8eaf6;
+}
+
+.vogo-chat-input input:focus {
+  border-color: #7c6ff7;
+  box-shadow: 0 0 0 3px rgba(124, 111, 247, 0.18);
+}
+
+.vogo-chat-input input::placeholder {
+  color: #546a94;
+}
+
+.vogo-chat-input button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 22px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: transform 0.2s, box-shadow 0.2s;
+  font-size: 14px;
+  font-family: inherit;
+  box-shadow: 0 2px 10px rgba(91, 79, 207, 0.4);
+  white-space: nowrap;
+}
+
+.vogo-chat-input button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(91, 79, 207, 0.55);
+}
+
+.vogo-chat-input button:active {
+  transform: scale(0.98);
+}
+
+.vogo-chat-input button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ============================================
+   SHOPPING LIST & AGENDA — PROFESSIONAL
+   ============================================ */
+.vogo-list-container {
+  margin: 6px 0 12px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  overflow: visible;
+}
+
+/* Item count header — "Items: 16" */
+.vogo-list-header {
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8fa3cc;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  letter-spacing: 0.03em;
+}
+
+/* First and last items get rounded corners */
+.vogo-list-item:first-child {
+  border-radius: 0;
+}
+
+.vogo-list-item:last-child {
+  border-bottom: none;
+  border-radius: 0 0 10px 10px;
+}
+
+.vogo-list-item:only-child {
+  border-radius: 0 0 10px 10px;
+}
+
+.vogo-list-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  transition: background 0.15s;
+  cursor: default;
+  background: transparent;
+}
+
+.vogo-list-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.vogo-list-item--done {
+  background: transparent;
+}
+
+.vogo-list-item--done:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* Checkbox */
+.vogo-item-checkbox {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: #7c6ff7;
+}
+
+/* Number badge */
+.vogo-item-number {
+  font-size: 12px;
+  font-weight: 600;
+  color: #8fa3cc;
+  flex-shrink: 0;
+  min-width: 22px;
+  text-align: right;
+  line-height: 1.4;
+}
+
+/* Item name - always fully visible */
+.vogo-item-name {
+  font-size: 13.5px;
+  color: #e8eaf6;
+  flex: 1;
+  line-height: 1.4;
+  text-decoration: none !important;
+  opacity: 1 !important;
+}
+
+/* Done state - no strikethrough, no dim */
+.vogo-list-item--done .vogo-item-name {
+  text-decoration: none;
+  color: #e8eaf6;
+  opacity: 1;
+}
+
+.vogo-list-item--done .vogo-item-number {
+  opacity: 1;
+  color: #8fa3cc;
+}
+
+/* Date pill — agenda only */
+.vogo-item-date {
+  font-size: 11px;
+  color: #8fa3cc;
+  flex-shrink: 0;
+  background: rgba(124, 111, 247, 0.15);
+  border: 1px solid rgba(124, 111, 247, 0.25);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ============================================
+   PRODUCT SEARCH RESULTS — PROFESSIONAL
+   ============================================ */
+.vogo-product-results {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 6px 0 12px;
+}
+
+.vogo-product-item {
+  background: #1a2d55;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 3px solid #7c6ff7;
+  border-radius: 10px;
+  padding: 12px 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  transition: background 0.18s, box-shadow 0.18s, transform 0.18s;
+}
+
+.vogo-product-item:hover {
+  background: #1f3566;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  transform: translateY(-1px);
+}
+
+.vogo-product-name {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #e8eaf6;
+  flex: 1;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.vogo-product-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.vogo-product-btn {
+  padding: 6px 13px;
+  border-radius: 6px;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+  min-width: 82px;
+  text-align: center;
+}
+
+.vogo-product-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.vogo-product-btn--add {
+  background: rgba(255, 255, 255, 0.07);
+  color: #e8eaf6;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+}
+
+.vogo-product-btn--add:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.13);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.vogo-product-btn--open {
+  background: rgba(255, 255, 255, 0.07);
+  color: #8fa3cc;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+}
+
+.vogo-product-btn--open:hover {
+  background: rgba(255, 255, 255, 0.13);
+  color: #e8eaf6;
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+/* ============================================
+   CONFIDENCE / INTENT BADGES
+   ============================================ */
+.vogo-confidence-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.vogo-confidence-high {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+.vogo-confidence-medium {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+}
+
+.vogo-confidence-low {
+  background: rgba(248, 113, 113, 0.15);
+  color: #f87171;
+}
+
+.vogo-intent-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  margin-top: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #8fa3cc;
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes typingDot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.35; }
+  30%            { transform: translateY(-5px); opacity: 1; }
+}
+
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+  40%           { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+.vogo-hidden   { display: none !important; }
+.vogo-fade-in  { animation: fadeIn 0.3s ease; }
+.vogo-pulse    { animation: pulse 2s infinite; }
+
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+.vogo-chat-input input:focus-visible,
+.vogo-chat-input button:focus-visible,
+.vogo-question-btn:focus-visible,
+.close-btn:focus-visible,
+#vogo-close-btn:focus-visible {
+  outline: 2px solid #7c6ff7;
+  outline-offset: 2px;
+}
+
+/* ============================================
+   MOBILE RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+  #vogo-chat-window {
+    width: calc(100% - 32px);
+    height: calc(100dvh - 110px);
+    bottom: 82px;
+    right: 16px;
+    left: 16px;
+  }
+
+  #vogo-chat-bubble {
+    bottom: 15px;
+    right: 15px;
+    width: 56px;
+    height: 56px;
+  }
+
+  .vogo-chat-messages {
+    padding: 14px 12px;
+  }
+
+  .vogo-bot-message,
+  .vogo-user-message {
+    max-width: 90%;
+    font-size: 13.5px;
+  }
+
+  .vogo-question-btn {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .vogo-chat-input {
+    padding: 10px 12px;
+  }
+
+  .vogo-chat-input input {
+    font-size: 13.5px;
+    padding: 8px 12px;
+  }
+
+  .vogo-chat-input button {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+
+  .vogo-header-icon {
+    width: 34px;
+    height: 34px;
+  }
+
+  .vogo-message-icon {
+    width: 26px;
+    height: 26px;
+  }
+
+  /* Product buttons side by side on mobile */
+  .vogo-product-btns {
+    flex-direction: row;
+  }
+
+  .vogo-product-btn {
+    flex: 1;
+    min-width: unset;
+  }
+  
+  #vogo-attach {
+    padding: 6px 10px;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  #vogo-chat-window {
+    width: 100%;
+    height: 100dvh;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    border-radius: 0;
+  }
+
+  .vogo-chat-header {
+    border-radius: 0;
+  }
+
+  .vogo-chat-input {
+    border-radius: 0;
+  }
+
+}
+
+/* ============================================
+   IMAGE MESSAGES
+   ============================================ */
+.vogo-message-image {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s;
+  display: block;
+  margin: 4px 0;
+  object-fit: contain;
+}
+
+.vogo-message-image:hover {
+  transform: scale(1.02);
+}
+
+.vogo-user-message--with-image {
+  padding: 8px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  max-width: 100% !important;
+}
+
+.vogo-bot-message--with-image {
+  max-width: 90% !important;
+}
+
+.vogo-message-bubble--with-image {
+  max-width: 100%;
+}
+
+/* Image Modal */
+.vogo-image-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000000;
+  animation: fadeIn 0.2s ease;
+}
+
+.vogo-image-modal-content {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.vogo-image-modal-close {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  font-size: 40px;
+  color: white;
+  cursor: pointer;
+  transition: color 0.2s;
+  z-index: 1000001;
+}
+
+.vogo-image-modal-close:hover {
+  color: #667eea;
+}
+
+/* ============================================
+   LIVE CHAT MODE (Phase C: Human Operator)
+   ============================================ */
+.vogo-live-chat-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #1a2d55 0%, #1e3a5f 100%);
+  border: 1px solid rgba(102, 126, 234, 0.35);
+  border-left: 3px solid #667eea;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 8px 4px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #e8eaf6;
+}
+
+.vogo-live-chat-banner svg {
+  width: 18px;
+  height: 18px;
+  color: #667eea;
+  flex-shrink: 0;
+}
+
+.vogo-live-chat-end-btn {
+  display: block;
+  width: calc(100% - 8px);
+  margin: 0 4px 10px;
+  padding: 8px 16px;
+  background: transparent;
+  color: #ff6b6b;
+  border: 1px solid rgba(255, 107, 107, 0.4);
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.vogo-live-chat-end-btn:hover {
+  background: rgba(255, 107, 107, 0.1);
+}
+
+.vogo-live-chat-indicator {
+  display: inline-block;
+  margin-left: auto;
+  padding: 2px 8px;
+  background: #ff6b6b;
+  color: #ffffff;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  animation: vogo-live-pulse 2s ease-in-out infinite;
+}
+
+@keyframes vogo-live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.vogo-agent-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #667eea;
+  margin-bottom: 4px;
+  padding-left: 2px;
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+@media print {
+  #vogo-chat-bubble,
+  #vogo-chat-window {
+    display: none !important;
+  }
+}
+
+/* ============================================
+   REDUCE MOTION
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

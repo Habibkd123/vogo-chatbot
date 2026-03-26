@@ -1,0 +1,40 @@
+<!-- src/ui/chatbot.html -->
+<!-- This will be injected via JavaScript -->
+
+<template id="vogo-chatbot-template">
+  <!-- Chat Bubble Button -->
+  <div id="vogo-chat-bubble">
+    <svg viewBox="0 0 24 24">
+      <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 3 .97 4.29L2 22l5.71-.97C9 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.38 0-2.68-.33-3.83-.91l-.27-.15-2.98.51.51-2.98-.15-.27C4.33 14.68 4 13.38 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/>
+    </svg>
+  </div>
+
+  <!-- Chat Window -->
+  <div id="vogo-chat-window" class="hidden">
+    <!-- Header -->
+    <div class="vogo-chat-header">
+      <div>
+        <h3 id="vogo-bot-name">Kodee</h3>
+        <div class="vogo-language-selector" id="vogo-language-selector">
+          <!-- Language buttons will be added here -->
+        </div>
+      </div>
+      <button class="close-btn" id="vogo-close-btn">×</button>
+    </div>
+
+    <!-- Messages -->
+    <div class="vogo-chat-messages" id="vogo-chat-messages">
+      <!-- Messages will be added here -->
+    </div>
+
+    <!-- Input -->
+    <div class="vogo-chat-input">
+      <input 
+        type="text" 
+        id="vogo-input" 
+        placeholder="Ask Kodee anything..."
+      />
+      <button id="vogo-send-btn">Send</button>
+    </div>
+  </div>
+</template>

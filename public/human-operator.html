@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VOGO - Human Operator Dashboard</title>
+  <link rel="stylesheet" href="/human-operator.css">
+</head>
+<body>
+
+  <!-- LOGIN SCREEN -->
+  <div id="login-screen" class="login-screen">
+    <div class="login-card">
+      <div class="login-logo">
+        <img src="/images/vogo-icon.png" alt="VOGO" onerror="this.style.display='none'">
+        <h1>VOGO Support</h1>
+        <p>Human Operator Dashboard</p>
+      </div>
+      <form id="login-form" autocomplete="off">
+        <div class="input-group">
+          <label for="login-username">Username</label>
+          <input type="text" id="login-username" placeholder="Enter your username" required>
+        </div>
+        <div class="input-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" placeholder="Enter your password" required>
+        </div>
+        <button type="submit" id="login-btn">Sign In</button>
+        <div id="login-error" class="login-error" style="display:none"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashboard" class="dashboard" style="display:none">
+    <!-- HEADER -->
+    <header class="dash-header">
+      <div class="dash-header-left">
+        <img src="/images/vogo-icon.png" alt="VOGO" class="dash-logo" onerror="this.style.display='none'">
+        <span class="dash-title">VOGO Support Dashboard</span>
+      </div>
+      <div class="dash-header-right">
+        <span id="operator-name" class="operator-name"></span>
+        <button id="logout-btn" class="logout-btn">Logout</button>
+      </div>
+    </header>
+
+    <div class="dash-body">
+      <!-- SIDEBAR: Thread List -->
+      <aside id="thread-list" class="thread-list">
+        <div class="thread-list-header">
+          <h2>Conversations</h2>
+          <button id="clear-threads-btn" class="clear-btn" title="Clear all threads">&#x2715;</button>
+          <button id="refresh-threads-btn" class="refresh-btn" title="Refresh">&#x21bb;</button>
+        </div>
+        <div id="thread-items" class="thread-items">
+          <div class="thread-empty">No conversations yet</div>
+        </div>
+      </aside>
+
+      <!-- MAIN: Chat Area -->
+      <main id="chat-area" class="chat-area">
+        <div class="chat-placeholder">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="48" height="48"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>
+          <p>Select a conversation to start chatting</p>
+        </div>
+
+        <!-- Active chat (hidden until a thread is selected) -->
+        <div id="chat-active" class="chat-active" style="display:none">
+          <div class="chat-active-header">
+            <div class="chat-user-info">
+              <span id="chat-user-name" class="chat-user-name"></span>
+              <span id="chat-thread-id" class="chat-thread-id"></span>
+            </div>
+          </div>
+          <div id="chat-messages" class="chat-messages"></div>
+          <div class="chat-input-bar">
+            <input type="file" id="chat-image-input" accept="image/*" style="display:none" />
+            <button id="chat-attach-btn" class="chat-attach-btn" title="Attach image">&#128206;</button>
+            <input type="text" id="chat-input" placeholder="Type your reply..." autocomplete="off">
+            <button id="chat-send-btn" class="chat-send-btn">Send</button>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="/human-operator.js"></script>
+</body>
+</html>

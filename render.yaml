@@ -1,0 +1,71 @@
+services:
+  # ─── Node.js Main Backend ───────────────────────────────
+  - type: web
+    name: vogo-chatbot
+    runtime: node
+    rootDir: .
+    buildCommand: npm install
+    startCommand: node server/server.js
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SERVER_PORT
+        value: 10000          # Render uses port 10000 by default
+
+      # Vogo API
+      - key: VOGO_API_BASE
+        sync: false           # fill in Render dashboard
+      - key: VOGO_USERNAME
+        sync: false
+      - key: VOGO_PASSWORD
+        sync: false
+      - key: ENABLE_API_CALLS
+        value: "true"
+
+      # AI Models
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+      - key: GROQ_MAX_TOKENS
+        value: "300"
+      - key: GROQ_TEMPERATURE
+        value: "0.3"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+
+      # AI Routing
+      - key: AI_MODEL_GENERAL
+        value: ai_groq
+      - key: AI_MODEL_VIP
+        value: ai_openai
+      - key: AI_MODEL_ADMIN
+        value: ai_groq
+      - key: AI_MODEL_BASIC
+        value: ai_basic
+
+      # Voice Backend URL (update AFTER deploying voice service below)
+      - key: VOICE_BACKEND_URL
+        sync: false           # paste the Python service URL here after deploy
+
+      - key: SHOW_DETAILED_LOGS
+        value: "true"
+
+  # ─── Python Voice Backend ───────────────────────────────
+  - type: web
+    name: vogo-voice-backend
+    runtime: python
+    rootDir: voice-backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"

@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Environment variables (NEVER commit!)
+.env
+
+# Logs
+logs/*.db
+logs/*.log
+
+# SQLite databases
+*.db
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+voice-backend/__pycache__/
+
+# TTS generated audio files (temporary)
+voice-backend/*.mp3
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+vogo-chatbot.js.map
