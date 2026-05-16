@@ -74,12 +74,18 @@ AVAILABLE INTENTS:
   entities: { "event": "event name" }
 - "search_product"     : user wants to search/find a product or service
   entities: { "searchTerm": "what to search for" }
-- "user_connect"       : user says they want to connect their account, login, sign in, or link their profile. Also triggered when they say "I want to connect", "add to my shopping list" / "add to my agenda" but are NOT yet logged in (requires authentication first).
+- "user_connect"       : user EXPLICITLY says they want to connect their account, login, sign in, or link their profile. Triggered ONLY for phrases like "I want to connect", "login", "sign in", "connect my account", "log me in". Do NOT use this for any other reason.
   entities: {}
 - "transfer_to_human"  : user explicitly wants to speak to a human, real person, live agent, customer support, or operator. Also triggered for sensitive topics involving legal issues, financial disputes, medical concerns, refund requests, or formal complaints that require human judgment.
   entities: { "reason": "brief reason for transfer" }
-- "conversational"     : user is hungry, wants suggestions, says tell me something, etc.
-- "fallback"           : you genuinely cannot understand what the user wants
+- "conversational"     : user sends general chat, questions, curious messages, or anything not fitting other intents
+- "fallback"           : message is completely unintelligible, random characters, gibberish, keyboard mash, or has no meaning — return THIS and NEVER return user_connect or transfer_to_human for gibberish
+
+CRITICAL RULE — WHEN IN DOUBT:
+  Use "conversational" or "general_knowledge". NEVER use "user_connect" or "transfer_to_human" unless the user EXPLICITLY asks for login or a human agent.
+  Random text like "jkhkjg", "asdfgh", "zzxxx" = always "fallback".
+  Test sentences like "text chat is working" = always "conversational".
+  Information statements = always "conversational" or "general_knowledge".
 
 LANGUAGE RULES:
 - Detect what language the user is writing in (English, Romanian, Italian, French, German, or other)

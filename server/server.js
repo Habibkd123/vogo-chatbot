@@ -33,6 +33,8 @@ const aiService = require('./ai_service');
 const vogoApi = require('./services/vogoApi');
 const authSession = require('./auth_session');
 const loggingService = require('./services/logging_service');
+const emailService = require('./services/email_service');
+const smsService = require('./services/sms_service');
 
 // ============================================================================
 // IMAGE UPLOAD CONFIGURATION (Multer)
@@ -166,6 +168,94 @@ function getSmartFallback(language) {
     de: "Ich bin VOGO, Ihr Vogo Family Assistent! Ich kann Ihnen helfen, Produkte zu suchen, Ihre Einkaufsliste oder Ihren Kalender zu verwalten. Wie kann ich helfen?"
   };
   return msgs[language] || msgs['en'];
+}
+
+// Intent-specific template responses — used when Groq is unavailable
+// Each intent gets a DIFFERENT meaningful response, not the same static message
+function getIntentTemplate(intent, language) {
+  const lang = language || 'en';
+  const templates = {
+    greeting: {
+      en: "Hello! I'm Vogo, your Vogo Family assistant. I can help you search products, manage your shopping list, or organize your calendar. What can I do for you?",
+      ro: "Salut! Sunt Vogo, asistentul tău Vogo Family. Te pot ajuta să cauți produse, să gestionezi lista de cumpărături sau calendarul. Cu ce te ajut?",
+      it: "Ciao! Sono Vogo, il tuo assistente Vogo Family. Posso aiutarti a cercare prodotti, gestire la lista della spesa o il calendario. Come posso aiutarti?",
+      fr: "Bonjour! Je suis Vogo, votre assistant Vogo Family. Je peux vous aider à trouver des produits, gérer votre liste de courses ou votre agenda. Comment puis-je vous aider?",
+      de: "Hallo! Ich bin Vogo, Ihr Vogo Family Assistent. Ich kann Ihnen bei Produktsuche, Einkaufsliste oder Kalender helfen. Was kann ich für Sie tun?"
+    },
+    farewell: {
+      en: "Goodbye! Have a wonderful day. Come back anytime! 👋",
+      ro: "La revedere! O zi minunată! Revino oricând! 👋",
+      it: "Arrivederci! Buona giornata! Torna quando vuoi! 👋",
+      fr: "Au revoir! Bonne journée! Revenez quand vous voulez! 👋",
+      de: "Auf Wiedersehen! Einen schönen Tag! Komm jederzeit wieder! 👋"
+    },
+    thanks: {
+      en: "You're welcome! Is there anything else I can help you with? 😊",
+      ro: "Cu plăcere! Mai pot ajuta cu ceva? 😊",
+      it: "Prego! Posso aiutarti con qualcos'altro? 😊",
+      fr: "De rien! Puis-je vous aider avec autre chose? 😊",
+      de: "Bitte schön! Kann ich noch mit etwas helfen? 😊"
+    },
+    how_are_you: {
+      en: "I'm doing great, thank you for asking! I'm ready to help you with shopping, calendar, or product search. What would you like to do?",
+      ro: "Mă simt excelent, mulțumesc! Sunt pregătit să te ajut cu cumpărăturile, calendarul sau căutarea de produse. Ce dorești?",
+      it: "Sto benissimo, grazie! Sono pronto ad aiutarti con la spesa, il calendario o la ricerca prodotti. Cosa posso fare?",
+      fr: "Je vais très bien, merci! Je suis prêt à vous aider avec les courses, l'agenda ou la recherche. Que puis-je faire?",
+      de: "Mir geht es super, danke! Ich bin bereit zu helfen mit Einkauf, Kalender oder Produktsuche. Was kann ich tun?"
+    },
+    help_capabilities: {
+      en: "Here's what I can do for you:\n• 🛒 Shopping List — add, view, remove items\n• 📅 Calendar — add events, reminders, view schedule\n• 🔍 Search — find products and services near you\nJust tell me what you need!",
+      ro: "Iată ce pot face:\n• 🛒 Listă cumpărături — adaugă, vizualizează, șterge produse\n• 📅 Calendar — adaugă evenimente, amintiri, vezi programul\n• 🔍 Căutare — găsește produse și servicii în zonă\nSpune-mi ce ai nevoie!",
+      it: "Ecco cosa posso fare:\n• 🛒 Lista spesa — aggiungi, visualizza, rimuovi prodotti\n• 📅 Calendario — aggiungi eventi, promemoria, visualizza\n• 🔍 Cerca — trova prodotti e servizi vicino a te\nDimmi di cosa hai bisogno!",
+      fr: "Voici ce que je peux faire:\n• 🛒 Liste de courses — ajouter, voir, supprimer des articles\n• 📅 Agenda — ajouter des événements, des rappels, voir\n• 🔍 Recherche — trouver des produits et services près de vous\nDites-moi ce dont vous avez besoin!",
+      de: "Das kann ich für Sie tun:\n• 🛒 Einkaufsliste — Artikel hinzufügen, ansehen, entfernen\n• 📅 Kalender — Termine, Erinnerungen hinzufügen, ansehen\n• 🔍 Suche — Produkte und Dienste in Ihrer Nähe finden\nSagen Sie mir, was Sie brauchen!"
+    },
+    positive_feedback: {
+      en: "That's wonderful to hear! 😊 I'm glad I could help. Anything else you'd like to do?",
+      ro: "Mă bucur să aud asta! 😊 Sunt fericit că am putut ajuta. Mai dorești ceva?",
+      it: "È bello sentirlo! 😊 Sono contento di aver potuto aiutare. Posso fare qualcos'altro?",
+      fr: "C'est merveilleux à entendre! 😊 Je suis ravi d'avoir pu aider. Autre chose?",
+      de: "Das freut mich zu hören! 😊 Ich bin froh, geholfen haben zu können. Noch etwas?"
+    },
+    negative_feedback: {
+      en: "I'm sorry to hear that! 😔 Could you rephrase your request? I'll do my best to help you better.",
+      ro: "Îmi pare rău! 😔 Poți reformula cererea ta? Voi face tot posibilul să te ajut mai bine.",
+      it: "Mi dispiace! 😔 Potresti riformulare la tua richiesta? Farò del mio meglio per aiutarti meglio.",
+      fr: "Je suis désolé! 😔 Pourriez-vous reformuler votre demande? Je ferai de mon mieux pour mieux vous aider.",
+      de: "Das tut mir leid! 😔 Könnten Sie Ihre Anfrage umformulieren? Ich werde mein Bestes tun, um Ihnen besser zu helfen."
+    },
+    small_talk: {
+      en: "Ha! I love a good chat. 😄 I'm Vogo, your AI assistant for Vogo Family. I can help with your shopping list, calendar, or finding products. What can I do for you?",
+      ro: "Ha! Îmi place o conversație bună. 😄 Sunt Vogo, asistentul tău AI pentru Vogo Family. Pot ajuta cu lista de cumpărături, calendarul sau căutarea de produse.",
+      it: "Ha! Mi piace fare due chiacchiere. 😄 Sono Vogo, il tuo assistente AI per Vogo Family. Posso aiutarti con la lista della spesa, il calendario o la ricerca prodotti.",
+      fr: "Ha! J'aime bien bavarder. 😄 Je suis Vogo, votre assistant AI pour Vogo Family. Je peux vous aider avec la liste de courses, l'agenda ou la recherche de produits.",
+      de: "Ha! Ich mag gute Gespräche. 😄 Ich bin Vogo, Ihr KI-Assistent für Vogo Family. Ich kann bei Einkaufsliste, Kalender oder Produktsuche helfen."
+    },
+    general_knowledge: {
+      en: "That's an interesting question! Unfortunately I don't have access to real-time information right now. But I can help you search for products, manage your shopping list, or organize your calendar on Vogo Family. What would you like to do?",
+      ro: "Întrebare interesantă! Din păcate nu am acces la informații în timp real acum. Dar te pot ajuta să cauți produse, să gestionezi lista de cumpărături sau calendarul. Ce dorești?",
+      it: "Domanda interessante! Purtroppo non ho accesso a informazioni in tempo reale ora. Ma posso aiutarti a cercare prodotti, gestire la lista della spesa o il calendario. Cosa vuoi fare?",
+      fr: "Question intéressante! Malheureusement je n'ai pas accès aux informations en temps réel maintenant. Mais je peux vous aider à chercher des produits, gérer votre liste de courses ou votre agenda.",
+      de: "Interessante Frage! Leider habe ich gerade keinen Zugang zu Echtzeit-Informationen. Aber ich kann Ihnen bei der Produktsuche, Einkaufsliste oder dem Kalender helfen."
+    },
+    conversational: {
+      en: "I'm here to help! 😊 You can ask me to add items to your shopping list, manage your calendar events, or search for products on Vogo Family. What would you like to do?",
+      ro: "Sunt aici să ajut! 😊 Poți să mă rogi să adaug produse în lista de cumpărături, să gestionez evenimentele din calendar sau să caut produse. Ce dorești?",
+      it: "Sono qui per aiutarti! 😊 Puoi chiedermi di aggiungere articoli alla lista della spesa, gestire gli eventi del calendario o cercare prodotti. Cosa vuoi fare?",
+      fr: "Je suis là pour aider! 😊 Vous pouvez me demander d'ajouter des articles à votre liste de courses, gérer vos événements de calendrier ou rechercher des produits.",
+      de: "Ich bin hier um zu helfen! 😊 Sie können mich bitten, Artikel zur Einkaufsliste hinzuzufügen, Kalendertermine zu verwalten oder Produkte zu suchen."
+    },
+    fallback: {
+      en: "I'm not sure I understood that. Could you try rephrasing? I can help with: Shopping list, Calendar events, or Product search. 🛒📅🔍",
+      ro: "Nu am înțeles bine. Poți reformula? Te pot ajuta cu: Lista de cumpărături, Evenimente în calendar, sau Căutare produse. 🛒📅🔍",
+      it: "Non sono sicuro di aver capito. Potresti riformulare? Posso aiutarti con: Lista della spesa, Calendario, o Ricerca prodotti. 🛒📅🔍",
+      fr: "Je ne suis pas sûr d'avoir compris. Pourriez-vous reformuler? Je peux aider avec: Liste de courses, Agenda, ou Recherche de produits. 🛒📅🔍",
+      de: "Ich bin nicht sicher ob ich das verstanden habe. Könnten Sie umformulieren? Ich kann helfen mit: Einkaufsliste, Kalender, oder Produktsuche. 🛒📅🔍"
+    }
+  };
+
+  const intentTemplates = templates[intent] || templates['fallback'];
+  return intentTemplates[lang] || intentTemplates['en'];
 }
 
 function decodeJwtPayload(token) {
@@ -491,6 +581,14 @@ async function initializeServices() {
     // Step 3b: Configure AI Service (multi-model switcher)
     aiService.configure();
     console.log(' AI Service configured (role-based model routing)');
+
+    // Step 3c: Configure Email Service (Nodemailer)
+    emailService.configure();
+    console.log(` Email Service: ${emailService.isEnabled() ? 'ENABLED' : 'DISABLED (set EMAIL_* in .env)'}`);
+
+    // Step 3d: Configure SMS Service (Twilio)
+    smsService.configure();
+    console.log(` SMS Service: ${smsService.isEnabled() ? 'ENABLED' : 'DISABLED (set TWILIO_* in .env)'}`);
 
     // Step 4: Initialize logging service
     loggingService.initialize();
@@ -1029,7 +1127,7 @@ function extractEventAndDatetime(eventText, dateStr) {
 // 6-step routing: Language -> Regex -> Keywords -> NLP -> Groq LLM -> Fallback
 // ============================================================================
 app.post('/api/chatbot-nlp', async (req, res) => {
-  const { text, language } = req.body;
+  const { text, language, aiModel } = req.body;
   const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
   const originalJson = res.json.bind(res);
 
@@ -1354,55 +1452,95 @@ app.post('/api/chatbot-nlp', async (req, res) => {
       const usernameInput = text.trim();
       const lang = currentAuthState.lang || language || 'en';
 
-      // FIX 1: Validate the input looks like a real username/email.
-      // If the user typed something clearly wrong (too short, looks like a
-      // chat message, no @ for emails) — ask again instead of accepting it.
-      const looksLikeChatMessage = usernameInput.length < 3 ||
-        /^(yes|no|ok|hi|hello|bye|thanks|cancel|stop|what|why|how|help)/i.test(usernameInput) ||
-        /[?!]{2,}/.test(usernameInput) ||
-        usernameInput.split(' ').length > 6; // more than 6 words = sentence not username
-
-      if (looksLikeChatMessage) {
-        // Not a valid username — ask again, keep step as awaiting_username
-        const tryAgainMsgs = {
-          en: 'That does not look like a username. Please enter your Vogo Family email or username:',
-          ro: 'Acesta nu pare un nume de utilizator. Introdu email-ul sau utilizatorul Vogo Family:',
-          it: 'Questo non sembra un nome utente. Inserisci la tua email o nome utente Vogo Family:',
-          fr: 'Cela ne ressemble pas a un nom d utilisateur. Entrez votre email ou nom d utilisateur Vogo Family:',
-          de: 'Das sieht nicht wie ein Benutzername aus. Gib deine Vogo Family E-Mail oder deinen Benutzernamen ein:'
+      // Allow user to CANCEL the login flow at any time
+      const isCancelIntent = /^(cancel|exit|stop|quit|nevermind|never mind|back|iesi|renunta|annulla|annuler|abbrechen)\b/i.test(usernameInput);
+      if (isCancelIntent) {
+        authSession.clearAuthSession(userIp);
+        const cancelMsgs = {
+          en: 'Login cancelled. How can I help you?',
+          ro: 'Autentificare anulata. Cum te pot ajuta?',
+          it: 'Accesso annullato. Come posso aiutarti?',
+          fr: 'Connexion annulee. Comment puis-je vous aider?',
+          de: 'Anmeldung abgebrochen. Wie kann ich helfen?'
         };
-        const tryAgainMsg = tryAgainMsgs[lang] || tryAgainMsgs['en'];
+        const cancelMsg = cancelMsgs[lang] || cancelMsgs['en'];
         return res.json({
           success: true,
-          result: { intent: 'user_connect', confidence: 1.0, method: 'auth_flow', response: tryAgainMsg, detectedLanguage: lang },
-          action: { awaitingUsername: true, message: tryAgainMsg, overrideResponse: true },
+          result: { intent: 'conversational', confidence: 1.0, method: 'auth_flow', response: cancelMsg, detectedLanguage: lang },
+          action: { success: true, message: cancelMsg, overrideResponse: true, authCancelled: true },
           entities: {}
         });
       }
 
-      console.log('[AUTH] Received username: ' + usernameInput);
-      authSession.setAuthSession(userIp, { step: 'awaiting_password', username: usernameInput });
-      const askPwMsgs = {
-        en: 'Got it! Now please enter your password:',
-        ro: 'Multumesc! Acum te rog sa introduci parola:',
-        it: 'Capito! Ora inserisci la tua password:',
-        fr: 'Compris! Maintenant entrez votre mot de passe:',
-        de: 'Verstanden! Bitte gib jetzt dein Passwort ein:'
-      };
-      const askPwMsg = askPwMsgs[lang] || askPwMsgs['en'];
-      return res.json({
-        success: true,
-        result: { intent: 'user_connect', confidence: 1.0, method: 'auth_flow', response: askPwMsg, detectedLanguage: lang },
-        action: { awaitingPassword: true, message: askPwMsg, overrideResponse: true },
-        entities: {}
-      });
-    }
+      // Detect if input is a chat message NOT a username/email
+      const wordCount = usernameInput.split(/\s+/).length;
+      const hasAtSign = usernameInput.includes('@');
+      const looksLikeEmail = hasAtSign && usernameInput.includes('.');
+
+      const looksLikeChatMessage =
+        !looksLikeEmail && (
+          wordCount >= 3 ||   // 3+ words = definitely a sentence, not an email
+          /^(yes|no|ok|hi|hello|bye|thanks|thank|cancel|stop|what|why|how|help|add|show|find|search|remind|salut|buna|ciao|bonjour|hallo|vreau|adauga|arata|cauta|text|voice|chat|this|the|it|is|are|i |we )\\b/i.test(usernameInput) ||
+          /[?!]{2,}/.test(usernameInput) ||
+          /^(I |i )(want|need|am|would|looking|can)/i.test(usernameInput) ||
+          // Clearly declarative/informational sentences
+          /\b(is|are|works?|working|function|functioneaza|funcţioneaz|merge)\b.{0,30}\b(normal|normally|fine|good|bine|ok)\b/i.test(usernameInput) ||
+          /\b(in|în)\s+(english|romanian|română|deutsch|german|italian|french)\b/i.test(usernameInput) ||
+          /\b(testing|testez|verific|test message)\b/i.test(usernameInput)
+        );
+
+      if (looksLikeChatMessage) {
+        // ✅ KEY FIX: Clear the auth session so user is NOT stuck in login loop
+        // Then fall through to normal NLP processing below
+        authSession.clearAuthSession(userIp);
+        console.log('[AUTH] Chat message detected during login flow — clearing session, passing to NLP');
+        // Don't return here — let the message fall through to normal NLP processing
+      } else {
+
+        console.log('[AUTH] Received username: ' + usernameInput);
+        authSession.setAuthSession(userIp, { step: 'awaiting_password', username: usernameInput });
+        const askPwMsgs = {
+          en: 'Got it! Now please enter your password:',
+          ro: 'Multumesc! Acum te rog sa introduci parola:',
+          it: 'Capito! Ora inserisci la tua password:',
+          fr: 'Compris! Maintenant entrez votre mot de passe:',
+          de: 'Verstanden! Bitte gib jetzt dein Passwort ein:'
+        };
+        const askPwMsg = askPwMsgs[lang] || askPwMsgs['en'];
+        return res.json({
+          success: true,
+          result: { intent: 'user_connect', confidence: 1.0, method: 'auth_flow', response: askPwMsg, detectedLanguage: lang },
+          action: { awaitingPassword: true, message: askPwMsg, overrideResponse: true },
+          entities: {}
+        });
+      } // end else (valid username)
+    } // end awaiting_username block — if looksLikeChatMessage, falls through to NLP below
+
 
     // --- STEP: awaiting_password ---
     if (currentAuthState && currentAuthState.step === 'awaiting_password') {
       const passwordInput = text.trim();
       const username = currentAuthState.username;
       const lang = currentAuthState.lang || language || 'en';
+
+      // Allow user to cancel at password step too
+      const isCancelPassword = /^(cancel|exit|stop|quit|nevermind|never mind|back|iesi|renunta|annulla|annuler|abbrechen)\b/i.test(passwordInput);
+      if (isCancelPassword) {
+        authSession.clearAuthSession(userIp);
+        const cancelMsgs = {
+          en: 'Login cancelled. How can I help you?',
+          ro: 'Autentificare anulata. Cum te pot ajuta?',
+          it: 'Accesso annullato. Come posso aiutarti?',
+          fr: 'Connexion annulee. Comment puis-je vous aider?',
+          de: 'Anmeldung abgebrochen. Wie kann ich helfen?'
+        };
+        return res.json({
+          success: true,
+          result: { intent: 'conversational', confidence: 1.0, method: 'auth_flow', response: cancelMsgs[lang] || cancelMsgs['en'], detectedLanguage: lang },
+          action: { success: true, message: cancelMsgs[lang] || cancelMsgs['en'], overrideResponse: true, authCancelled: true },
+          entities: {}
+        });
+      }
 
       // FIX 2: Validate password is not obviously wrong (too short)
       if (passwordInput.length < 3) {
@@ -1484,7 +1622,7 @@ app.post('/api/chatbot-nlp', async (req, res) => {
     //   Step 1: Groq PRIMARY BRAIN — full NLU in any language (returns JSON)
     //   Step 2: Offline fallback  — regex/keyword/node-nlp (Groq down/timeout)
     // =========================================================================
-    const result = await nlpService.processMessage(text, language, userRole);
+    const result = await nlpService.processMessage(text, language, userRole, aiModel);
     console.log(` Intent: ${result.intent} | Method: ${result.method}`);
 
     // Use AI-provided entities whenever an AI model produced them.
@@ -2385,33 +2523,53 @@ app.post('/api/chatbot-nlp', async (req, res) => {
       : result.response;
 
     // Offline fallback path: if we got here via regex/NLP (Groq was down),
-    // conversational intents still need a Groq response if possible
-    const isOfflinePath = result.method !== 'groq_primary' && result.method !== 'offline_pattern';
-    const needsGroqResponse = isOfflinePath && (
-      GROQ_INTENTS.has(result.intent) ||
-      !displayResponse ||
-      displayResponse === 'null'
+    // conversational intents still need a Groq response if possible.
+    // FIX: ai_service returns method='ai_groq'/'ai_openai'/'ai_gemini' etc. — NOT 'groq_primary'.
+    // All of these are ONLINE paths and should NOT trigger a second redundant Groq call.
+    const AI_ONLINE_METHODS = new Set([
+      'groq_primary', 'offline_pattern',          // groq_service.js paths
+      'ai_groq', 'ai_openai', 'ai_gemini',         // ai_service.js paths
+      'ai_ollama', 'ai_rasa',                       // local model paths
+      'ai_groq_fallback', 'ai_openai_fallback',     // fallback variants
+      'ai_gemini_fallback', 'ai_ollama_fallback'    // fallback variants
+    ]);
+    const isOfflinePath = !AI_ONLINE_METHODS.has(result.method);
+
+    // needsGroqResponse: true when we need a conversational text response
+    // Triggers when:
+    //   (a) We're on offline path (regex/NLP) with a conversational intent
+    //   (b) We're on ANY path but have NO response text yet (e.g. Rasa NLU returns response:null)
+    const noResponse = !displayResponse || displayResponse === 'null' || displayResponse === 'undefined';
+    const needsGroqResponse = (
+      (isOfflinePath && GROQ_INTENTS.has(result.intent))   // offline path + conversational intent
+      || noResponse                                          // any path — no response text at all
     );
+
+    console.log(` [ROUTE] method=${result.method} | isOfflinePath=${isOfflinePath} | needsGroqResponse=${needsGroqResponse} | noResponse=${noResponse} | intent=${result.intent}`);
 
     let finalResponse = displayResponse;
 
     if (needsGroqResponse) {
       const lang = result.detectedLanguage || language || 'en';
-      if (groqEnabled) {
-        console.log(` Groq fallback response -> intent=${result.intent} lang=${lang}...`);
+      const hasOfflineResponse = displayResponse && displayResponse !== 'null' && displayResponse.length > 5;
+
+      if (groqEnabled && !hasOfflineResponse) {
+        console.log(` Groq response -> intent=${result.intent} lang=${lang}...`);
         const groqResponse = await askGroq(text, lang, result.intent);
         if (groqResponse) {
           finalResponse = groqResponse;
-          result.method = 'groq_llm';
+          result.method = result.method.startsWith('ai_') ? result.method : 'groq_llm';
           console.log(` Groq (${lang}): ${groqResponse.substring(0, 120)}`);
         } else {
-          finalResponse = getSmartFallback(lang);
-          result.method = 'fallback';
+          // Groq failed — use intent-specific offline template
+          finalResponse = getIntentTemplate(result.intent, lang);
+          console.log(` [TEMPLATE] Groq unavailable — using template for ${result.intent}`);
         }
-      } else {
-        finalResponse = displayResponse || getSmartFallback(result.detectedLanguage || language || 'en');
-        result.method = displayResponse ? result.method : 'fallback';
+      } else if (!hasOfflineResponse) {
+        // Groq disabled — use intent-specific template
+        finalResponse = getIntentTemplate(result.intent, result.detectedLanguage || language || 'en');
       }
+      // else: hasOfflineResponse=true → keep displayResponse as finalResponse
     }
 
     // Log conversation
@@ -2500,26 +2658,23 @@ app.post('/api/upload-image', upload.single('image'), async (req, res) => {
   const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
   try {
-    const session = authSession.getAuthSession(userIp);
-    const liveThreadId = session?.liveChatThreadId;
-    const liveSupportId = session?.liveChatSupportUserId;
-
-    if (!liveThreadId || !liveSupportId) {
-      return res.json({
-        success: false,
-        message: 'Image upload is only available when connected to a human operator. Please request human support first.'
-      });
-    }
-
     if (!req.file) {
       return res.json({ success: false, message: 'No image file provided' });
     }
 
+    const session = authSession.getAuthSession(userIp);
+    const liveThreadId = session?.liveChatThreadId;
+    const liveSupportId = session?.liveChatSupportUserId;
+
     const imageUrl = '/uploads/' + req.file.filename;
 
-    loggingService.logOperatorAction('image_uploaded', liveThreadId, String(liveSupportId), `Image uploaded: ${req.file.originalname} (${req.file.size} bytes)`, userIp);
+    if (liveThreadId && liveSupportId) {
+      loggingService.logOperatorAction('image_uploaded', liveThreadId, String(liveSupportId), `Image uploaded: ${req.file.originalname} (${req.file.size} bytes)`, userIp);
+    } else {
+      loggingService.logChatbotAction('image_uploaded', { filename: req.file.originalname, size: req.file.size }, userIp);
+    }
 
-    console.log(` [UPLOAD] Image uploaded: ${req.file.originalname} -> ${imageUrl} (Live Chat: Thread ${liveThreadId})`);
+    console.log(` [UPLOAD] Image: ${req.file.originalname} -> ${imageUrl} (${Math.round(req.file.size/1024)}KB)`);
 
     res.json({
       success: true,
@@ -2530,7 +2685,6 @@ app.post('/api/upload-image', upload.single('image'), async (req, res) => {
       mimetype: req.file.mimetype
     });
   } catch (error) {
-    loggingService.logError('upload_error', error, { filename: req.file?.originalname }, userIp);
     console.error(' [UPLOAD] Error:', error.message);
     res.json({ success: false, message: error.message });
   }
@@ -2967,10 +3121,150 @@ async function startServer() {
     process.exit(1);
   }
 
+  // ============================================================================
+  // ADMIN API ROUTES
+  // ============================================================================
+
+  // Simple admin auth middleware (token from .env)
+  function adminAuth(req, res, next) {
+    const token = req.headers['x-admin-token'] || req.query.token;
+    const adminToken = process.env.ADMIN_TOKEN || 'vogo-admin-2024';
+    if (token !== adminToken) {
+      return res.status(401).json({ error: 'Unauthorized. Set X-Admin-Token header.' });
+    }
+    next();
+  }
+
+  // GET /admin/stats — dashboard statistics
+  app.get('/admin/stats', adminAuth, async (req, res) => {
+    const health = VARIABLES.getSystemHealth();
+    const aiStats = aiService.getStats();
+    const emailStatus = emailService.getStatus();
+    const smsStatus = smsService.getStatus();
+    const logStatus = loggingService.getStatus();
+    res.json({
+      uptime: health.uptime,
+      totalRequests: health.totalRequests,
+      totalConversations: health.totalConversations,
+      recentErrors: health.recentErrors,
+      memory: health.memoryUsage,
+      groq: { enabled: groqEnabled, model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile', calls: groqRequestCount },
+      ai: aiStats,
+      email: emailStatus,
+      sms: smsStatus,
+      logging: logStatus,
+      status: health.status
+    });
+  });
+
+  // POST /admin/sms/test — send test SMS
+  app.post('/admin/sms/test', adminAuth, async (req, res) => {
+    const { to } = req.body;
+    const result = await smsService.sendTestSms(to);
+    res.json(result);
+  });
+
+  // POST /admin/sms/send — send custom SMS
+  app.post('/admin/sms/send', adminAuth, async (req, res) => {
+    const { to, message } = req.body;
+    if (!to || !message) return res.json({ success: false, error: 'to and message required' });
+    const result = await smsService.sendCustomSms(to, message);
+    res.json(result);
+  });
+
+  // GET /admin/logs — recent conversation logs
+  app.get('/admin/logs', adminAuth, async (req, res) => {
+    const limit = parseInt(req.query.limit || '50');
+    const category = req.query.category || null;
+    const logs = await loggingService.getRecentLogs(limit, category);
+    res.json({ logs, total: logs.length });
+  });
+
+  // POST /admin/email/test — send test email
+  app.post('/admin/email/test', adminAuth, async (req, res) => {
+    const { to } = req.body;
+    const result = await emailService.sendTestEmail(to);
+    res.json(result);
+  });
+
+  // GET /admin/email/verify — verify SMTP connection
+  app.get('/admin/email/verify', adminAuth, async (req, res) => {
+    const result = await emailService.verifyConnection();
+    res.json(result);
+  });
+
+  // POST /admin/email/summary — manually trigger daily summary
+  app.post('/admin/email/summary', adminAuth, async (req, res) => {
+    const health = VARIABLES.getSystemHealth();
+    const result = await emailService.sendDailySummaryEmail({
+      totalRequests: health.totalRequests,
+      totalConversations: health.totalConversations,
+      errorCount: health.recentErrors,
+      uptime: Math.floor(health.uptime / 1000)
+    });
+    res.json(result);
+  });
+
+  // GET /admin/ai — AI provider status
+  app.get('/admin/ai', adminAuth, (req, res) => {
+    res.json(aiService.getStats());
+  });
+
+  // POST /admin/logs/clear — clear old logs
+  app.post('/admin/logs/clear', adminAuth, async (req, res) => {
+    const days = parseInt(req.body.days || '7');
+    const ok = await loggingService.clearOldLogs(days);
+    res.json({ success: ok, message: ok ? `Cleared logs older than ${days} days` : 'Failed to clear logs' });
+  });
+
+  // POST /admin/settings/save — update .env and reload services
+  const fs = require('fs');
+  app.post('/admin/settings/save', adminAuth, async (req, res) => {
+    try {
+      const updates = req.body || {};
+      const envPath = require('path').join(__dirname, '..', '.env');
+      const dockerEnvPath = require('path').join(__dirname, '..', '.env.docker');
+      
+      const updateEnvFile = (filePath) => {
+        if (!fs.existsSync(filePath)) return;
+        let content = fs.readFileSync(filePath, 'utf8');
+        for (const [key, val] of Object.entries(updates)) {
+          const regex = new RegExp(`^${key}=.*$`, 'm');
+          if (regex.test(content)) {
+            content = content.replace(regex, `${key}=${val}`);
+          } else {
+            content += `\n${key}=${val}`;
+          }
+        }
+        fs.writeFileSync(filePath, content.trim() + '\n', 'utf8');
+      };
+
+      for (const [key, val] of Object.entries(updates)) {
+        process.env[key] = val; // update memory
+      }
+      
+      updateEnvFile(envPath);
+      updateEnvFile(dockerEnvPath);
+
+      aiService.configure(); // Re-read keys and defaults
+      
+      res.json({ success: true, message: 'Settings saved and applied!' });
+    } catch (e) {
+      console.error('Settings save failed:', e);
+      res.json({ success: false, error: e.message });
+    }
+  });
+
+  // Serve admin panel HTML
+  app.get('/admin', (req, res) => {
+    res.sendFile(require('path').join(__dirname, '..', 'public', 'admin.html'));
+  });
+
   app.listen(PORT, () => {
     console.log('\n' + '='.repeat(70));
     console.log(` Server running: http://localhost:${PORT}`);
     console.log(` Test chatbot: http://localhost:${PORT}/test.html`);
+    console.log(` Admin panel: http://localhost:${PORT}/admin`);
     console.log(` View logs: http://localhost:${PORT}/logs`);
     console.log(` Health check: http://localhost:${PORT}/health`);
     console.log('='.repeat(70) + '\n');

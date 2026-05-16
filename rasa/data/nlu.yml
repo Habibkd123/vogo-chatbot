@@ -1,0 +1,644 @@
+version: "3.1"
+
+# =============================================================================
+# VOGO CHATBOT - Rasa NLU Training Data
+# Converted from nlp-database.json
+# Languages: en, ro, it, fr, de, es
+# =============================================================================
+
+nlu:
+
+# ---------------------------------------------------------------------------
+# INTENT: greeting
+# ---------------------------------------------------------------------------
+- intent: greeting
+  examples: |
+    - hello
+    - hi
+    - hey
+    - good morning
+    - good afternoon
+    - good evening
+    - good night
+    - greetings
+    - howdy
+    - hi there
+    - hey there
+    - hello there
+    - morning
+    - what's up
+    - whats up
+    - salut
+    - buna ziua
+    - buna dimineata
+    - buna seara
+    - noroc
+    - servus
+    - salutare
+    - ciao
+    - buongiorno
+    - buonasera
+    - salve
+    - bonjour
+    - bonsoir
+    - salut
+    - hallo
+    - guten morgen
+    - guten tag
+    - guten abend
+    - hola
+    - buenos dias
+    - buenas tardes
+
+# ---------------------------------------------------------------------------
+# INTENT: farewell
+# ---------------------------------------------------------------------------
+- intent: farewell
+  examples: |
+    - bye
+    - goodbye
+    - see you later
+    - see you
+    - take care
+    - farewell
+    - cya
+    - ttyl
+    - later
+    - la revedere
+    - pa
+    - pe curand
+    - arrivederci
+    - ciao
+    - a presto
+    - au revoir
+    - a bientot
+    - auf wiedersehen
+    - tschuss
+    - adios
+    - hasta luego
+
+# ---------------------------------------------------------------------------
+# INTENT: thanks
+# ---------------------------------------------------------------------------
+- intent: thanks
+  examples: |
+    - thank you
+    - thanks
+    - thanks a lot
+    - thank you so much
+    - many thanks
+    - appreciate it
+    - thx
+    - ty
+    - cheers
+    - much appreciated
+    - multumesc
+    - mersi
+    - multumesc mult
+    - multumesc frumos
+    - grazie
+    - grazie mille
+    - merci
+    - merci beaucoup
+    - danke
+    - danke schon
+    - gracias
+    - muchas gracias
+
+# ---------------------------------------------------------------------------
+# INTENT: how_are_you
+# ---------------------------------------------------------------------------
+- intent: how_are_you
+  examples: |
+    - how are you
+    - how are you doing
+    - how's it going
+    - how do you do
+    - are you ok
+    - you alright
+    - ce mai faci
+    - cum esti
+    - come stai
+    - come va
+    - comment allez-vous
+    - comment vas-tu
+    - wie geht es ihnen
+    - wie gehts
+    - como estas
+    - que tal
+
+# ---------------------------------------------------------------------------
+# INTENT: help_capabilities
+# ---------------------------------------------------------------------------
+- intent: help_capabilities
+  examples: |
+    - what can you do
+    - what do you do
+    - how can you help
+    - what are your features
+    - help me
+    - what's possible
+    - what can i ask
+    - who are you
+    - what are you
+    - give me recommendations
+    - food recommendations
+    - product recommendations
+    - ce poti face
+    - ce stii sa faci
+    - ajutor
+    - cum functionezi
+    - cosa puoi fare
+    - come funzioni
+    - que peux-tu faire
+    - was kannst du machen
+    - que puedes hacer
+
+# ---------------------------------------------------------------------------
+# INTENT: shopping_list_add
+# ---------------------------------------------------------------------------
+- intent: shopping_list_add
+  examples: |
+    - add [milk](item) to my shopping list
+    - add [eggs](item) to the list
+    - add [bread](item) to my cart
+    - put [coffee](item) on my list
+    - save [butter](item) to my shopping list
+    - include [sugar](item) in my list
+    - i need to buy [apples](item)
+    - buy [cheese](item)
+    - buy me [pasta](item)
+    - add [organic milk](item) to cart
+    - put [fresh bread](item) in cart
+    - throw [water](item) in the cart
+    - pick up some [bananas](item)
+    - grab some [yogurt](item)
+    - get me [chicken](item)
+    - we need [tomatoes](item)
+    - running out of [olive oil](item)
+    - we ran out of [salt](item)
+    - i'll need [orange juice](item)
+    - need to get [detergent](item)
+    - adauga [lapte](item) in lista
+    - adauga [oua](item) pe lista mea
+    - pune [paine](item) in lista de cumparaturi
+    - salveaza [branza](item) in lista
+    - am nevoie de [cafea](item)
+    - vreau sa cumpar [unt](item)
+    - adauga [mere](item)
+    - adauga-mi [rosii](item)
+    - bag [suc](item) in lista
+    - nu mai am [zahar](item)
+    - aggiungi [latte](item) alla lista
+    - aggiungi [uova](item) al carrello
+    - metti [pane](item) nella lista della spesa
+    - ajouter [lait](item) a la liste
+    - ajoute [pain](item) sur ma liste
+    - hinzufugen [milch](item) zur einkaufsliste
+    - fuege [brot](item) zur liste hinzu
+    - anadir [leche](item) a la lista
+    - agrega [huevos](item) al carrito
+
+# ---------------------------------------------------------------------------
+# INTENT: shopping_list_show
+# ---------------------------------------------------------------------------
+- intent: shopping_list_show
+  examples: |
+    - show my shopping list
+    - show the list
+    - view my list
+    - see my shopping list
+    - display the list
+    - open shopping list
+    - what's in my cart
+    - what's on my list
+    - what do i need to buy
+    - my shopping list
+    - check my list
+    - shopping list please
+    - arata lista mea
+    - arata lista de cumparaturi
+    - ce am in lista
+    - ce am pe lista
+    - arata-mi lista
+    - lista mea de cumparaturi
+    - ce trebuie sa cumpar
+    - mostra la lista della spesa
+    - mostra il mio carrello
+    - montre ma liste de courses
+    - zeige meine einkaufsliste
+    - muestra mi lista de compras
+
+# ---------------------------------------------------------------------------
+# INTENT: shopping_list_delete
+# ---------------------------------------------------------------------------
+- intent: shopping_list_delete
+  examples: |
+    - remove [milk](item) from my list
+    - delete [eggs](item) from the list
+    - take [bread](item) off my list
+    - cross off [coffee](item) from list
+    - remove [butter](item) from cart
+    - delete [cheese](item) from shopping
+    - remove item from list
+    - sterge [lapte](item) din lista
+    - sterge [oua](item) de pe lista
+    - elimina [paine](item) din lista de cumparaturi
+    - rimuovi [latte](item) dalla lista
+    - supprimer [lait](item) de la liste
+    - entfernen [milch](item) von der liste
+    - eliminar [leche](item) de la lista
+
+# ---------------------------------------------------------------------------
+# INTENT: shopping_list_mark_done
+# ---------------------------------------------------------------------------
+- intent: shopping_list_mark_done
+  examples: |
+    - mark [milk](item) as done
+    - mark [eggs](item) as bought
+    - i bought [bread](item)
+    - tick [coffee](item) off the list
+    - set [butter](item) as complete
+    - mark [cheese](item) complete
+    - done with [pasta](item)
+    - marcare [lapte](item) ca cumparat
+    - am cumparat [paine](item)
+    - bifa [oua](item)
+
+# ---------------------------------------------------------------------------
+# INTENT: shopping_list_unmark_done
+# ---------------------------------------------------------------------------
+- intent: shopping_list_unmark_done
+  examples: |
+    - unmark [milk](item)
+    - uncheck [eggs](item) from list
+    - mark [bread](item) as not done
+    - mark [coffee](item) undone
+    - undo [butter](item) from list
+    - reset [cheese](item) in list
+    - debifa [lapte](item)
+    - marcheaza [paine](item) ca necumparat
+
+# ---------------------------------------------------------------------------
+# INTENT: agenda_add
+# ---------------------------------------------------------------------------
+- intent: agenda_add
+  examples: |
+    - add [dentist appointment](event) on [friday](date) to my calendar
+    - remind me about [meeting](event) [tomorrow](date)
+    - set a reminder for [doctor](event) on [monday](date)
+    - schedule [gym](event) for [saturday](date)
+    - add [team meeting](event) to my agenda
+    - book [lunch with client](event) on [tuesday](date)
+    - create an event [birthday party](event) on [sunday](date)
+    - don't forget [call mom](event) [tonight](date)
+    - remember to [exercise](event) [every morning](date)
+    - block time for [project review](event) on [thursday](date)
+    - meeting on [wednesday](date) with the [team](event)
+    - appointment [friday afternoon](date)
+    - put [dentist](event) in my calendar
+    - save [weekly standup](event) to agenda
+    - adauga [intalnire](event) [marti](date) in calendar
+    - aminteste-mi de [sedinta](event) [maine](date)
+    - programeaza [doctor](event) pentru [luni](date)
+    - seteaza reminder pentru [gym](event) [sambata](date)
+    - am intalnire [joi](date) cu [echipa](event)
+    - noteaza [petrecere](event) [duminica](date)
+    - aggiungi [riunione](event) [lunedi](date) al calendario
+    - ricordami [appuntamento dal dottore](event) [venerdi](date)
+    - ajouter [reunion](event) [lundi](date) au calendrier
+    - rappelle-moi [rendez-vous](event) [demain](date)
+    - fuege [meeting](event) [montag](date) zum kalender hinzu
+    - erinnere mich an [termin](event) [morgen](date)
+    - anadir [reunion](event) [lunes](date) al calendario
+    - recordarme [cita medica](event) [manana](date)
+
+# ---------------------------------------------------------------------------
+# INTENT: agenda_show
+# ---------------------------------------------------------------------------
+- intent: agenda_show
+  examples: |
+    - show my calendar
+    - view my agenda
+    - show my schedule
+    - what's on my calendar
+    - what do i have today
+    - what do i have tomorrow
+    - upcoming events
+    - my agenda
+    - my calendar
+    - check my schedule
+    - what meetings do i have
+    - what events do i have
+    - what's coming up
+    - show agenda please
+    - what's planned this week
+    - arata calendarul meu
+    - ce am azi
+    - ce am maine
+    - ce am in calendar
+    - agenda mea
+    - programul meu
+    - ce evenimente am
+    - mostra il mio calendario
+    - cosa ho oggi
+    - montre mon calendrier
+    - qu'est-ce que j'ai aujourd'hui
+    - zeige meinen kalender
+    - was habe ich heute
+    - muestra mi calendario
+    - que tengo hoy
+
+# ---------------------------------------------------------------------------
+# INTENT: agenda_delete
+# ---------------------------------------------------------------------------
+- intent: agenda_delete
+  examples: |
+    - delete [dentist appointment](event) from my calendar
+    - remove [meeting](event) from agenda
+    - cancel [doctor appointment](event)
+    - delete the [gym session](event)
+    - remove [team meeting](event) from schedule
+    - cancel my [interview](event) on [friday](date)
+    - sterge [intalnire](event) din calendar
+    - anuleaza [sedinta](event) de [luni](date)
+    - elimina [eveniment](event) din agenda
+    - rimuovi [appuntamento](event) dal calendario
+    - supprimer [reunion](event) du calendrier
+    - entfernen [meeting](event) aus dem kalender
+    - eliminar [cita](event) del calendario
+
+# ---------------------------------------------------------------------------
+# INTENT: agenda_mark_done
+# ---------------------------------------------------------------------------
+- intent: agenda_mark_done
+  examples: |
+    - mark [meeting](event) as done
+    - complete [dentist appointment](event)
+    - i finished [gym session](event)
+    - mark [team meeting](event) complete
+    - done with [doctor appointment](event)
+    - marcare [intalnire](event) ca finalizata
+
+# ---------------------------------------------------------------------------
+# INTENT: agenda_unmark_done
+# ---------------------------------------------------------------------------
+- intent: agenda_unmark_done
+  examples: |
+    - unmark [meeting](event) as done
+    - mark [dentist appointment](event) as undone
+    - undo [gym session](event) completion
+    - reset [team meeting](event) status
+    - debifa [intalnire](event)
+
+# ---------------------------------------------------------------------------
+# INTENT: search_product
+# ---------------------------------------------------------------------------
+- intent: search_product
+  examples: |
+    - find [pizza](searchTerm) near me
+    - search for [burger](searchTerm)
+    - look for [coffee](searchTerm)
+    - where can i find [sushi](searchTerm)
+    - show me [pasta](searchTerm)
+    - i'm looking for [salad](searchTerm)
+    - do you have [steak](searchTerm)
+    - locate [bakery](searchTerm) near me
+    - is [milk](searchTerm) available
+    - can i get [fresh bread](searchTerm)
+    - looking to buy [olive oil](searchTerm)
+    - help me find [restaurant](searchTerm)
+    - find me [pizza place](searchTerm)
+    - browse for [coffee shops](searchTerm)
+    - cauta [pizza](searchTerm)
+    - gaseste [burger](searchTerm) langa mine
+    - unde gasesc [cafea](searchTerm)
+    - cauta [paste](searchTerm) in zona mea
+    - vreau sa gasesc [sushi](searchTerm)
+    - cerca [pizza](searchTerm) vicino a me
+    - trova [burger](searchTerm)
+    - cherche [pizza](searchTerm) pres de moi
+    - trouve [cafe](searchTerm)
+    - suche [pizza](searchTerm) in meiner nahe
+    - finde [burger](searchTerm)
+    - busca [pizza](searchTerm) cerca de mi
+    - encuentra [cafe](searchTerm)
+
+# ---------------------------------------------------------------------------
+# INTENT: user_connect
+# ---------------------------------------------------------------------------
+- intent: user_connect
+  examples: |
+    - i want to connect
+    - login
+    - sign in
+    - log in
+    - connect my account
+    - link my account
+    - i want to log in
+    - please login
+    - connect me
+    - i need to login
+    - sign into my account
+    - vreau sa ma conectez
+    - logheaza-ma
+    - conecteaza-ma
+    - voglio accedere
+    - fammi accedere
+    - je veux me connecter
+    - connecte-moi
+    - ich moechte mich einloggen
+    - anmelden
+    - quiero iniciar sesion
+
+# ---------------------------------------------------------------------------
+# INTENT: transfer_to_human
+# ---------------------------------------------------------------------------
+- intent: transfer_to_human
+  examples: |
+    - speak to a human
+    - i want to talk to a real person
+    - connect me to an agent
+    - transfer me to customer support
+    - live agent please
+    - human operator
+    - customer service
+    - i need a real person
+    - put me through to someone
+    - talk to operator
+    - vreau un operator
+    - vorbesc cu un om
+    - transfer la operator
+    - voglio parlare con un operatore
+    - assistenza clienti
+    - je veux parler a un humain
+    - service client
+    - ich moechte mit jemandem sprechen
+    - kundendienst
+    - quiero hablar con una persona
+    - servicio al cliente
+
+# ---------------------------------------------------------------------------
+# INTENT: general_knowledge
+# ---------------------------------------------------------------------------
+- intent: general_knowledge
+  examples: |
+    - who is obama
+    - what is the capital of france
+    - tell me about pizza
+    - how do i make pasta
+    - what's the weather like
+    - give me advice
+    - how can i lose weight
+    - what's a good recipe
+    - tell me a fact
+    - what time is it
+    - how far is paris
+    - explain machine learning
+    - i want to learn cooking
+    - i need help with my car
+    - i need a service for my bike
+
+# ---------------------------------------------------------------------------
+# INTENT: conversational
+# ---------------------------------------------------------------------------
+- intent: conversational
+  examples: |
+    - i'm hungry
+    - i want to eat something
+    - i feel like pizza tonight
+    - what should i eat
+    - i'm bored
+    - just chatting
+    - are you a bot
+    - are you real
+    - testing
+    - chat is working
+    - nothing much
+    - just checking
+    - i don't know
+    - whatever you suggest
+
+# ---------------------------------------------------------------------------
+# INTENT: fallback
+# ---------------------------------------------------------------------------
+- intent: fallback
+  examples: |
+    - jkhkjg
+    - asdfgh
+    - zxcvbn
+    - qwerty123
+    - aaabbbccc
+    - xyzxyz
+    - 123abc456
+    - sdfghjkl
+
+# ---------------------------------------------------------------------------
+# SYNONYMS — normalize entity values
+# ---------------------------------------------------------------------------
+- synonym: shopping_list
+  examples: |
+    - list
+    - cart
+    - grocery list
+    - shopping cart
+    - my list
+    - basket
+
+- synonym: calendar
+  examples: |
+    - agenda
+    - schedule
+    - planner
+    - my calendar
+    - my agenda
+
+# ---------------------------------------------------------------------------
+# LOOKUP TABLES — boost entity recognition
+# ---------------------------------------------------------------------------
+- lookup: item
+  examples: |
+    - milk
+    - eggs
+    - bread
+    - coffee
+    - butter
+    - cheese
+    - pasta
+    - rice
+    - sugar
+    - salt
+    - olive oil
+    - water
+    - juice
+    - tea
+    - wine
+    - beer
+    - chicken
+    - beef
+    - fish
+    - tomatoes
+    - onions
+    - potatoes
+    - apples
+    - bananas
+    - oranges
+    - yogurt
+    - cream
+    - flour
+    - chocolate
+    - cookies
+    - lapte
+    - oua
+    - paine
+    - cafea
+    - unt
+    - branza
+    - zahar
+    - latte
+    - uova
+    - pane
+
+- lookup: date
+  examples: |
+    - monday
+    - tuesday
+    - wednesday
+    - thursday
+    - friday
+    - saturday
+    - sunday
+    - today
+    - tomorrow
+    - tonight
+    - this week
+    - next week
+    - next month
+    - this morning
+    - this afternoon
+    - this evening
+    - luni
+    - marti
+    - miercuri
+    - joi
+    - vineri
+    - sambata
+    - duminica
+    - azi
+    - maine
+    - saptamana viitoare
+
+# ---------------------------------------------------------------------------
+# REGEX — boost specific patterns
+# ---------------------------------------------------------------------------
+- regex: add_command
+  examples: |
+    - \b(add|put|save|include|throw|grab|get|buy|pick up)\b
+
+- regex: show_command
+  examples: |
+    - \b(show|view|display|see|open|check|list)\b
+
+- regex: delete_command
+  examples: |
+    - \b(delete|remove|cancel|erase|clear|take off|cross off)\b

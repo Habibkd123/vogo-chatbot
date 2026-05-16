@@ -1,0 +1,10 @@
+[
+  {
+    "name": "item",
+    "pattern": "(\\bmilk\\b|\\beggs\\b|\\bbread\\b|\\bcoffee\\b|\\bbutter\\b|\\bcheese\\b|\\bpasta\\b|\\brice\\b|\\bsugar\\b|\\bsalt\\b|\\bolive\\ oil\\b|\\bwater\\b|\\bjuice\\b|\\btea\\b|\\bwine\\b|\\bbeer\\b|\\bchicken\\b|\\bbeef\\b|\\bfish\\b|\\btomatoes\\b|\\bonions\\b|\\bpotatoes\\b|\\bapples\\b|\\bbananas\\b|\\boranges\\b|\\byogurt\\b|\\bcream\\b|\\bflour\\b|\\bchocolate\\b|\\bcookies\\b|\\blapte\\b|\\boua\\b|\\bpaine\\b|\\bcafea\\b|\\bunt\\b|\\bbranza\\b|\\bzahar\\b|\\blatte\\b|\\buova\\b|\\bpane\\b)"
+  },
+  {
+    "name": "date",
+    "pattern": "(\\bmonday\\b|\\btuesday\\b|\\bwednesday\\b|\\bthursday\\b|\\bfriday\\b|\\bsaturday\\b|\\bsunday\\b|\\btoday\\b|\\btomorrow\\b|\\btonight\\b|\\bthis\\ week\\b|\\bnext\\ week\\b|\\bnext\\ month\\b|\\bthis\\ morning\\b|\\bthis\\ afternoon\\b|\\bthis\\ evening\\b|\\bluni\\b|\\bmarti\\b|\\bmiercuri\\b|\\bjoi\\b|\\bvineri\\b|\\bsambata\\b|\\bduminica\\b|\\bazi\\b|\\bmaine\\b|\\bsaptamana\\ viitoare\\b)"
+  }
+]

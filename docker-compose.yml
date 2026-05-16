@@ -1,0 +1,189 @@
+# =============================================================================
+# VOGO CHATBOT - Docker Compose (Hostinger VPS Ready)
+# =============================================================================
+#   ollama       - Native Llama 3.1 (ollama/ollama from Docker Hub)
+#   chatbot      - Node.js + Express chatbot server (port 3001)
+#   voice        - Python FastAPI voice backend (port 8000)
+#   mysql        - MySQL 8 database (port 3306)
+#   ollama-init  - One-time job: pulls llama3.1:8b model on first run
+#
+# Usage:
+#   First time:  docker compose up -d
+#   Logs:        docker compose logs -f
+#   Stop:        docker compose down
+#   Destroy all: docker compose down -v
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # OLLAMA — Native Llama 3.1 (CPU only on Hostinger KVM VPS)
+  # Docker Hub: https://hub.docker.com/r/ollama/ollama
+  # ---------------------------------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    container_name: vogo-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"           # Ollama API (internal use only, not exposed to public)
+    volumes:
+      - ollama_data:/root/.ollama  # Model weights persist across restarts
+    environment:
+      - OLLAMA_HOST=0.0.0.0        # Listen on all interfaces inside container
+      - OLLAMA_KEEP_ALIVE=24h      # Keep model in memory for 24 hours
+      - OLLAMA_NUM_PARALLEL=2      # Max 2 concurrent requests (CPU mode)
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    networks:
+      - vogo-net
+
+  # ---------------------------------------------------------------------------
+  # OLLAMA INIT — Pulls llama3.1:8b on first run (runs once then exits)
+  # ---------------------------------------------------------------------------
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: vogo-ollama-init
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Checking if llama3.1:8b is already pulled..."
+        ollama list | grep -q "llama3.1:8b" && echo "Model already exists, skipping pull." && exit 0
+        echo "Pulling llama3.1:8b (this will take a few minutes on first run)..."
+        ollama pull llama3.1:8b
+        echo "Model pull complete!"
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    networks:
+      - vogo-net
+    restart: "no"   # Run once and exit
+
+  # ---------------------------------------------------------------------------
+  # CHATBOT — Node.js + Express (main chatbot API)
+  # ---------------------------------------------------------------------------
+  chatbot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vogo-chatbot
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./public/uploads:/app/public/uploads   # Uploaded images persist
+      - ./logs:/app/logs                        # Server logs persist
+    env_file:
+      - .env.docker                             # Docker-specific env (uses service names)
+    depends_on:
+      ollama:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - vogo-net
+
+  # ---------------------------------------------------------------------------
+  # RASA NLU — Intent Detection + Entity Extraction (Python, port 5005)
+  # HTTP API: POST http://rasa-nlu:5005/model/parse
+  # ---------------------------------------------------------------------------
+  rasa-nlu:
+    build:
+      context: .
+      dockerfile: rasa/Dockerfile.rasa
+    container_name: vogo-rasa-nlu
+    restart: unless-stopped
+    ports:
+      - "5005:5005"
+    volumes:
+      - rasa_models:/app/models    # Persist trained models
+      - ./logs:/app/logs           # Rasa logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5005/health"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 120s           # Training takes time on first build
+    networks:
+      - vogo-net
+
+  # ---------------------------------------------------------------------------
+  # VOICE — Python FastAPI (STT via Faster-Whisper + TTS via Edge-TTS)
+  # ---------------------------------------------------------------------------
+  voice:
+    build:
+      context: ./voice-backend
+      dockerfile: Dockerfile.voice
+    container_name: vogo-voice
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - voice_tmp:/app/tmp    # Temp audio files
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s       # Whisper model takes time to load
+    networks:
+      - vogo-net
+
+  # ---------------------------------------------------------------------------
+  # MYSQL — Database (optional, if you switch from API to local DB)
+  # ---------------------------------------------------------------------------
+  mysql:
+    image: mysql:8.0
+    container_name: vogo-mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-vogosecret123}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-vogo_chatbot}
+      MYSQL_USER: ${MYSQL_USER:-vogo}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-vogopass123}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-vogosecret123}"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - vogo-net
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+networks:
+  vogo-net:
+    driver: bridge
+    name: vogo-network
+
+# =============================================================================
+# VOLUMES — Persistent data survives container restarts
+# =============================================================================
+volumes:
+  ollama_data:
+    name: vogo-ollama-models    # ~5.5GB for llama3.1:8b
+  mysql_data:
+    name: vogo-mysql-data
+  voice_tmp:
+    name: vogo-voice-tmp
+  rasa_models:
+    name: vogo-rasa-models       # Trained Rasa NLU model
+

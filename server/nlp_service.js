@@ -796,7 +796,7 @@ class NLPService {
   ]);
   }
 
- async processMessage(text, language = 'en', userRole = 'general') {
+ async processMessage(text, language = 'en', userRole = 'general', aiModel = null) {
  text = this.normalizeText(text);
  this.currentUserRole = userRole || 'general';
  console.log(`\n Processing: "${text}" [${language}] [role=${this.currentUserRole}]`);
@@ -807,6 +807,32 @@ class NLPService {
  inputLanguage: language
  });
  if (this.conversationHistory.length > 10) this.conversationHistory.shift();
+
+ // =========================================================================
+ // STEP 0: Gibberish guard — catch random keystrokes before Groq runs
+ // Prevents "jkhkjg", "asdfgh" from triggering login/operator intents
+ // =========================================================================
+ const _t = text.trim().toLowerCase();
+ const _words = _t.split(/\s+/);
+ const _isGibberish = (() => {
+   if (!_t || _t.length < 2) return false;
+   // Single word with almost no vowels = gibberish
+   if (_words.length === 1) {
+     const w = _words[0].replace(/[^a-z]/g, '');
+     if (w.length > 3) {
+       const vowelRatio = (w.match(/[aeiou]/g) || []).length / w.length;
+       if (vowelRatio < 0.1) return true;
+     }
+   }
+   // 5+ consonants in a row = keyboard mash
+   if (/[^aeiou\s]{5,}/i.test(_t)) return true;
+   return false;
+ })();
+
+ if (_isGibberish) {
+   console.log(` [GUARD] Gibberish detected ("${text}") — skipping Groq, returning fallback`);
+   return this.getFallbackResponse(language && ['en','ro','it','fr','de'].includes(language) ? language : 'en');
+ }
 
  // =========================================================================
  // STEP 1: Language detection
@@ -829,9 +855,15 @@ class NLPService {
  // Regex/keyword/NLP below are OFFLINE FALLBACKS only — used when Groq
  // is unavailable (timeout, API key missing, network error).
  // =========================================================================
- console.log(` [LLM-FIRST] Sending to Groq → role=${this.currentUserRole}`);
- const aiResult = await aiService.processMessage(text, detectedLang, this.conversationHistory, this.currentUserRole);
+ console.log(` [LLM-FIRST] Sending to Groq → role=${this.currentUserRole} | overrideModel=${aiModel}`);
+ const aiResult = await aiService.processMessage(text, detectedLang, this.conversationHistory, this.currentUserRole, aiModel);
  if (aiResult && aiResult.matched) {
+   // Safety: block auth-requiring intents for clearly unknown single words
+   const AUTH_INTENTS = ['user_connect', 'transfer_to_human', 'human_operator'];
+   if (AUTH_INTENTS.includes(aiResult.intent) && _words.length === 1 && !/[aeiou]/i.test(_words[0])) {
+     console.log(` [GUARD] Blocking ${aiResult.intent} for single-word no-vowel input`);
+     return this.getFallbackResponse(detectedLang);
+   }
  if (this.conversationHistory.length > 0) {
  this.conversationHistory[this.conversationHistory.length - 1].botResponse = aiResult.response;
  }

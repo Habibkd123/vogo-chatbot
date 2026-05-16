@@ -1,0 +1,49 @@
+# =============================================================================
+# VOGO CHATBOT - Rasa NLU Docker Image (Lightweight Python-based)
+# Uses python:3.10-slim instead of rasa/rasa (which is 4GB+)
+# =============================================================================
+
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip first
+RUN pip install --upgrade pip
+
+# Install Rasa (NLU only — no action server needed)
+# Using --no-deps for some packages to avoid conflicts on slim image
+RUN pip install --no-cache-dir \
+    rasa==3.6.20 \
+    scikit-learn \
+    && pip install --no-cache-dir "tensorflow<2.13" || \
+    pip install --no-cache-dir rasa==3.6.20
+
+# Copy Rasa project files
+COPY ./rasa /app
+
+# Create models and logs directories
+RUN mkdir -p /app/models /app/logs
+
+# Train the NLU model at build time
+RUN rasa train nlu \
+    --config /app/config.yml \
+    --domain /app/domain.yml \
+    --data /app/data/ \
+    --out /app/models/ \
+    --fixed-model-name vogo_nlu_model
+
+# Expose Rasa NLU API port
+EXPOSE 5005
+
+# Start Rasa NLU HTTP API server
+CMD ["rasa", "run", \
+     "--enable-api", \
+     "--cors", "*", \
+     "--port", "5005", \
+     "--model", "/app/models/vogo_nlu_model.tar.gz"]

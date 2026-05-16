@@ -1,0 +1,23 @@
+{
+  "0": "agenda_add",
+  "1": "agenda_delete",
+  "2": "agenda_mark_done",
+  "3": "agenda_show",
+  "4": "agenda_unmark_done",
+  "5": "conversational",
+  "6": "fallback",
+  "7": "farewell",
+  "8": "general_knowledge",
+  "9": "greeting",
+  "10": "help_capabilities",
+  "11": "how_are_you",
+  "12": "search_product",
+  "13": "shopping_list_add",
+  "14": "shopping_list_delete",
+  "15": "shopping_list_mark_done",
+  "16": "shopping_list_show",
+  "17": "shopping_list_unmark_done",
+  "18": "thanks",
+  "19": "transfer_to_human",
+  "20": "user_connect"
+}

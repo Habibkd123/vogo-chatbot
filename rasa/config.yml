@@ -1,0 +1,64 @@
+recipe: default.v1
+
+# =============================================================================
+# VOGO CHATBOT - Rasa NLU Pipeline Configuration
+# Optimized for: multilingual intent detection + entity extraction
+# =============================================================================
+
+language: en  # Base language (multilingual handled via WhitespaceTokenizer)
+
+pipeline:
+  # ---------------------------------------------------------------------------
+  # STEP 1: Tokenizer
+  # WhitespaceTokenizer works for all latin-script languages (en/ro/it/fr/de/es)
+  # ---------------------------------------------------------------------------
+- name: WhitespaceTokenizer
+
+  # ---------------------------------------------------------------------------
+  # STEP 2: Featurizers
+  # RegexFeaturizer: uses regex patterns from nlu.yml to boost features
+  # LexicalSyntacticFeaturizer: adds word-shape features (e.g. uppercase, digits)
+  # CountVectorsFeaturizer: bag-of-words features
+  # ---------------------------------------------------------------------------
+- name: RegexFeaturizer
+- name: LexicalSyntacticFeaturizer
+- name: CountVectorsFeaturizer
+  analyzer: word
+- name: CountVectorsFeaturizer
+  analyzer: char_wb
+  min_ngram: 1
+  max_ngram: 4
+
+  # ---------------------------------------------------------------------------
+  # STEP 3: Intent Classifier
+  # DIETClassifier: jointly detects intents AND extracts entities
+  # epochs: 150 — good balance of speed vs accuracy
+  # entity_recognition: true — also extract item/event/date/searchTerm entities
+  # ---------------------------------------------------------------------------
+- name: DIETClassifier
+  epochs: 150
+  constrain_similarities: true
+  entity_recognition: true
+
+  # ---------------------------------------------------------------------------
+  # STEP 4: Entity Extractors
+  # RegexEntityExtractor: rule-based extraction using lookup tables
+  # ---------------------------------------------------------------------------
+- name: RegexEntityExtractor
+  use_lookup_tables: true
+  use_regexes: true
+
+  # ---------------------------------------------------------------------------
+  # STEP 5: Fallback Classifier
+  # If confidence < 0.6, classify as fallback
+  # ---------------------------------------------------------------------------
+- name: FallbackClassifier
+  threshold: 0.6
+  ambiguity_threshold: 0.1
+
+# =============================================================================
+# No policies needed — we are using Rasa NLU-only mode
+# The Node.js server handles all dialogue management
+# =============================================================================
+policies: []
+assistant_id: 20260516-181700-approximate-burn

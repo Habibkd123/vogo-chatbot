@@ -3,10 +3,13 @@
 // =============================================================================
 // Supports multiple AI providers configurable per user role:
 //
+//   ai_rasa    - Rasa NLU HTTP API (DIET classifier). No API key needed.
 //   ai_basic   - Offline only (regex + keyword + node-nlp). No API key needed.
+//   ai_ollama  - Native Llama 3.1 via Ollama (runs on VPS). No API key needed.
 //   ai_groq    - Groq LLM (llama-3.3-70b-versatile). Free tier.
 //   ai_openai  - OpenAI GPT (gpt-4o-mini). Requires OPENAI_API_KEY.
 //   ai_gemini  - Google Gemini (gemini-1.5-flash). Requires GEMINI_API_KEY.
+//   ai_claude  - Anthropic Claude (claude-3-haiku-20240307). Requires ANTHROPIC_API_KEY.
 //
 // ROLE → MODEL MAPPING (set in .env or chatbot.ini):
 //   AI_MODEL_GENERAL=ai_groq      (default for all users)
@@ -96,11 +99,20 @@ agenda_add: ONLY use when user explicitly says ADD/SCHEDULE/REMIND a specific ev
   ✅ "add dentist appointment friday", "remind me meeting tomorrow" → agenda_add
   ❌ "I have a meeting" (no command to add) → general_knowledge
 
-user_connect: use when user explicitly wants to login, connect, or sign in to their account.
-  ✅ "i want to connect", "i want to login", "login", "connect my account", "sign in", "log in"
-  ✅ "i want to log in", "connect", "i want to connect my account", "please login"
+user_connect: use ONLY when user EXPLICITLY says they want to login, connect, or sign in.
+  ✅ "i want to connect", "login", "sign in", "connect my account", "log in"
+  ❌ NEVER use for random text, gibberish, test messages, or when user is just chatting
+  ❌ NEVER use because user seems unauthenticated — only use when they explicitly ask to login
 
-WHEN IN DOUBT: use "general_knowledge". It is always better to give a helpful answer than to trigger a wrong platform action.
+transfer_to_human: ONLY when user explicitly asks for a human/agent/operator.
+  ✅ "speak to a human", "real person", "customer support", "transfer to agent"
+  ❌ NEVER use for random text or gibberish
+
+WHEN IN DOUBT — ALWAYS use "general_knowledge" or "conversational".
+Random characters ("jkhkjg", "asdfgh", "zxcvbn") → use "fallback" intent.
+Test/status sentences ("chat is working", "testing") → use "conversational" intent.
+Information statements → use "conversational" or "general_knowledge".
+NEVER trigger user_connect or transfer_to_human unless explicitly requested.
 
 RESPONSE RULES:
 - Keep "response" SHORT: 1-3 sentences, warm and natural
@@ -293,21 +305,229 @@ async function callGemini(text, language, conversationHistory, apiKey, model) {
 }
 
 // =============================================================================
+// PROVIDER: CLAUDE (Anthropic)
+// =============================================================================
+async function callClaude(text, language, conversationHistory, apiKey, model) {
+  const messages = [];
+  const recent = (conversationHistory || []).slice(-6);
+  for (const t of recent) {
+    if (t.userMessage) messages.push({ role: 'user', content: t.userMessage });
+    if (t.botResponse) messages.push({ role: 'assistant', content: t.botResponse });
+  }
+  messages.push({ role: 'user', content: `Detect language from text and respond in same language. Respond ONLY with valid JSON.\n\nUser message: ${text}` });
+
+  try {
+    const res = await httpPost('api.anthropic.com', '/v1/messages',
+      { 
+        'x-api-key': apiKey, 
+        'anthropic-version': '2023-06-01'
+      },
+      { 
+        model: model || 'claude-3-haiku-20240307', 
+        system: SYSTEM_PROMPT,
+        messages, 
+        max_tokens: 300, 
+        temperature: 0.3
+      }
+    );
+    if (res.status === 429) { console.warn('ai_service: Claude rate limited'); return null; }
+    if (res.body?.error) { console.error('ai_service: Claude error:', res.body.error.message); return null; }
+    const raw = res.body?.content?.[0]?.text?.trim();
+    return buildResult(parseLLMJson(raw), 'ai_claude');
+  } catch(e) {
+    console.error('ai_service: Claude call failed:', e.message);
+    return null;
+  }
+}
+
+// =============================================================================
+// PROVIDER: RASA NLU
+// Calls Rasa HTTP API: POST /model/parse
+// Returns: intent + confidence + extracted entities
+// Note: Rasa NLU does NOT generate a response — Groq/Ollama handles that
+// Rasa NLU API response format:
+//   { "text": "...", "intent": { "name": "...", "confidence": 0.98 },
+//     "entities": [ { "entity": "item", "value": "milk", ... } ] }
+// =============================================================================
+async function callRasa(text, language, rasaUrl) {
+  // Parse Rasa URL (default: http://localhost:5005)
+  const baseUrl = (rasaUrl || 'http://localhost:5005').replace(/\/+$/, '');
+  const isHttp = baseUrl.startsWith('http://');
+  const withoutProto = baseUrl.replace(/^https?:\/\//, '');
+  const [hostPart, portStr] = withoutProto.split(':');
+  const port = portStr ? parseInt(portStr) : (isHttp ? 80 : 443);
+
+  const body = JSON.stringify({ text, lang: language || 'en' });
+
+  return new Promise((resolve) => {
+    const lib = isHttp ? http : https;
+    const options = {
+      hostname: hostPart,
+      port,
+      path: '/model/parse',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body)
+      }
+    };
+
+    const req = lib.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          const intentName = parsed?.intent?.name;
+          const confidence  = parsed?.intent?.confidence || 0;
+
+          // Rasa confidence threshold: only use if > 0.65
+          if (!intentName || intentName === 'fallback' || confidence < 0.65) {
+            console.log(` ai_service [Rasa] Low confidence (${confidence.toFixed(2)}) for "${intentName}" — skipping`);
+            resolve(null);
+            return;
+          }
+
+          // Map Rasa entities array → our entities object
+          // Rasa: [ { entity: 'item', value: 'milk' }, ... ]
+          // Ours: { item: 'milk', event: '...', date: '...', searchTerm: '...' }
+          const entities = {};
+          if (Array.isArray(parsed.entities)) {
+            for (const e of parsed.entities) {
+              if (e.entity && e.value) {
+                entities[e.entity] = e.value;
+              }
+            }
+          }
+
+          // Rasa NLU does NOT generate a natural language response.
+          // We set response=null so nlp_service.js will call Groq/Ollama for the reply.
+          // (nlp_service.js checks for rasaResult.response === null and calls AI for text)
+          console.log(` ai_service [Rasa] intent=${intentName} confidence=${confidence.toFixed(2)} entities=${JSON.stringify(entities)}`);
+          resolve({
+            matched: true,
+            intent: intentName,
+            entities,
+            confidence,
+            method: 'ai_rasa',
+            response: null,          // Rasa NLU has no response — Groq will generate it
+            detectedLanguage: parsed?.intent_ranking ? language : language
+          });
+        } catch (e) {
+          console.error('ai_service [Rasa] parse error:', e.message);
+          resolve(null);
+        }
+      });
+    });
+
+    req.on('error', (e) => {
+      console.error('ai_service [Rasa] connection failed:', e.message);
+      resolve(null);
+    });
+    req.setTimeout(3000, () => {
+      console.warn('ai_service [Rasa] timeout (3s) — skipping Rasa, going to Groq');
+      req.destroy();
+      resolve(null);
+    });
+    req.write(body);
+    req.end();
+  });
+}
+
+// =============================================================================
+// PROVIDER: OLLAMA (Native Llama 3.1 — runs locally on VPS via Ollama)
+// =============================================================================
+async function callOllama(text, language, conversationHistory, host, model) {
+  const langLabels = { en:'English', ro:'Romanian', fr:'French', it:'Italian', de:'German', es:'Spanish', pt:'Portuguese' };
+  const langHint = (language && language !== 'auto' && langLabels[language])
+    ? `The system detected the user is writing in ${langLabels[language]}, but VERIFY from the actual text.`
+    : 'Detect the language from the user message text.';
+  const langInstruction = `CRITICAL: ${langHint} Your "lang" field and "response" MUST match the actual language written.`;
+
+  const messages = [{ role: 'system', content: SYSTEM_PROMPT }];
+  const recent = (conversationHistory || []).slice(-6);
+  for (const t of recent) {
+    if (t.userMessage) messages.push({ role: 'user',      content: t.userMessage });
+    if (t.botResponse) messages.push({ role: 'assistant', content: t.botResponse });
+  }
+  messages.push({ role: 'user', content: `${langInstruction}\n\nUser message: ${text}` });
+
+  // Parse Ollama host URL into hostname + path
+  let ollamaHost = (host || 'http://localhost:11434').replace(/\/+$/, '');
+  const isHttp = ollamaHost.startsWith('http://');
+  const hostname = ollamaHost.replace(/^https?:\/\//, '').split(':')[0];
+  const portMatch = ollamaHost.match(/:([0-9]+)/);
+  const port = portMatch ? parseInt(portMatch[1]) : (isHttp ? 80 : 443);
+
+  const body = JSON.stringify({
+    model: model || 'llama3.1:8b',
+    messages,
+    stream: false,
+    format: 'json',
+    options: { temperature: 0.3, num_predict: 300 }
+  });
+
+  return new Promise((resolve) => {
+    const lib = isHttp ? http : https;
+    const options = {
+      hostname,
+      port,
+      path: '/api/chat',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body)
+      }
+    };
+    const req = lib.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          const raw = parsed?.message?.content?.trim();
+          const result = buildResult(parseLLMJson(raw), 'ai_ollama');
+          resolve(result);
+        } catch(e) {
+          console.error('ai_service: Ollama parse error:', e.message);
+          resolve(null);
+        }
+      });
+    });
+    req.on('error', (e) => {
+      console.error('ai_service: Ollama connection failed:', e.message);
+      resolve(null);
+    });
+    req.setTimeout(60000, () => {
+      console.warn('ai_service: Ollama timeout (60s) — CPU inference may be slow');
+      req.destroy();
+      resolve(null);
+    });
+    req.write(body);
+    req.end();
+  });
+}
+
+// =============================================================================
 // AI SERVICE CLASS
 // =============================================================================
 class AIService {
   constructor() {
     // Model configs loaded from .env
     this.providers = {
+      ai_rasa:   { enabled: false, apiKey: null, model: null, host: 'http://localhost:5005' }, // Rasa NLU
+      ai_ollama: { enabled: false, apiKey: null, model: 'llama3.1:8b', host: 'http://localhost:11434' },
       ai_groq:   { enabled: false, apiKey: null, model: 'llama-3.3-70b-versatile' },
       ai_openai: { enabled: false, apiKey: null, model: 'gpt-4o-mini' },
       ai_gemini: { enabled: false, apiKey: null, model: 'gemini-1.5-flash' },
+      ai_claude: { enabled: false, apiKey: null, model: 'claude-3-haiku-20240307' },
       ai_basic:  { enabled: true,  apiKey: null, model: null } // always available
     };
 
     // Role → model mapping (overridable via .env)
+    // Set AI_MODEL_GENERAL=ai_rasa in .env to use Rasa as primary NLU
     this.roleModelMap = {
-      general: 'ai_groq',   // default users → Groq
+      general: 'ai_groq',   // default users → Groq (change to ai_rasa for Rasa NLU)
       vip:     'ai_openai', // VIP users → OpenAI
       admin:   'ai_groq',   // admins → Groq
       basic:   'ai_basic'   // no token / guest → offline only
@@ -318,6 +538,27 @@ class AIService {
   // configure() — call once at server startup
   // ---------------------------------------------------------------------------
   configure() {
+    // Rasa NLU (no API key needed — just needs Rasa server running)
+    const rasaUrl = process.env.RASA_URL || '';
+    if (rasaUrl) {
+      this.providers.ai_rasa.enabled = true;
+      this.providers.ai_rasa.host    = rasaUrl;
+      console.log(` AIService: ai_rasa ENABLED → ${rasaUrl}`);
+    } else {
+      console.log(' AIService: ai_rasa DISABLED (no RASA_URL in .env)');
+    }
+
+    // Ollama (Native Llama 3 — no API key needed, just needs Ollama running)
+    const ollamaHost = process.env.OLLAMA_HOST || '';
+    if (ollamaHost) {
+      this.providers.ai_ollama.enabled = true;
+      this.providers.ai_ollama.host    = ollamaHost;
+      this.providers.ai_ollama.model   = process.env.OLLAMA_MODEL || 'llama3.1:8b';
+      console.log(` AIService: ai_ollama ENABLED → ${ollamaHost} (model: ${this.providers.ai_ollama.model})`);
+    } else {
+      console.log(' AIService: ai_ollama DISABLED (no OLLAMA_HOST in .env)');
+    }
+
     // Groq
     const groqKey = process.env.GROQ_API_KEY || '';
     if (groqKey) {
@@ -351,6 +592,17 @@ class AIService {
       console.log(' AIService: ai_gemini DISABLED (no GEMINI_API_KEY)');
     }
 
+    // Claude
+    const claudeKey = process.env.ANTHROPIC_API_KEY || '';
+    if (claudeKey) {
+      this.providers.ai_claude.enabled = true;
+      this.providers.ai_claude.apiKey  = claudeKey;
+      this.providers.ai_claude.model   = process.env.ANTHROPIC_MODEL || 'claude-3-haiku-20240307';
+      console.log(' AIService: ai_claude ENABLED');
+    } else {
+      console.log(' AIService: ai_claude DISABLED (no ANTHROPIC_API_KEY)');
+    }
+
     // Role → model overrides from .env
     if (process.env.AI_MODEL_GENERAL) this.roleModelMap.general = process.env.AI_MODEL_GENERAL;
     if (process.env.AI_MODEL_VIP)     this.roleModelMap.vip     = process.env.AI_MODEL_VIP;
@@ -374,6 +626,8 @@ class AIService {
   // ---------------------------------------------------------------------------
   isAvailable(modelName) {
     if (modelName === 'ai_basic') return true;
+    if (modelName === 'ai_rasa')  return this.providers.ai_rasa?.enabled;  // Rasa needs no API key
+    if (modelName === 'ai_ollama') return this.providers.ai_ollama?.enabled; // Ollama needs no API key
     const p = this.providers[modelName];
     return p && p.enabled && p.apiKey;
   }
@@ -389,12 +643,18 @@ class AIService {
     console.log(` AIService: calling ${modelName}...`);
 
     switch(modelName) {
+      case 'ai_rasa':
+        return callRasa(text, language, p.host);
+      case 'ai_ollama':
+        return callOllama(text, language, conversationHistory, p.host, p.model);
       case 'ai_groq':
         return callGroq(text, language, conversationHistory, p.apiKey, p.model);
       case 'ai_openai':
         return callOpenAI(text, language, conversationHistory, p.apiKey, p.model);
       case 'ai_gemini':
         return callGemini(text, language, conversationHistory, p.apiKey, p.model);
+      case 'ai_claude':
+        return callClaude(text, language, conversationHistory, p.apiKey, p.model);
       case 'ai_basic':
         return null; // handled by offline NLP in nlp_service.js
       default:
@@ -408,8 +668,8 @@ class AIService {
   // userRole: 'general' | 'vip' | 'admin' | 'basic'
   // Returns standard result or null (null = use offline NLP)
   // ---------------------------------------------------------------------------
-  async processMessage(text, language, conversationHistory, userRole) {
-    const targetModel = this.getModelForRole(userRole);
+  async processMessage(text, language, conversationHistory, userRole, overrideModel = null) {
+    const targetModel = overrideModel || this.getModelForRole(userRole);
     console.log(` AIService: role=${userRole || 'general'} → model=${targetModel}`);
 
     // ai_basic = offline only, skip AI call
@@ -428,7 +688,7 @@ class AIService {
     }
 
     // Fallback chain: try other available models
-    const fallbackOrder = ['ai_groq', 'ai_openai', 'ai_gemini'].filter(m => m !== targetModel);
+    const fallbackOrder = ['ai_rasa', 'ai_ollama', 'ai_groq', 'ai_openai', 'ai_claude', 'ai_gemini'].filter(m => m !== targetModel);
     for (const fallback of fallbackOrder) {
       if (this.isAvailable(fallback)) {
         console.log(` AIService: trying fallback ${fallback}...`);

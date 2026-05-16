@@ -1,0 +1,63 @@
+version: "3.1"
+
+# =============================================================================
+# VOGO CHATBOT - Rasa Domain
+# Defines intents, entities, slots for NLU-only mode
+# =============================================================================
+
+intents:
+  - greeting
+  - farewell
+  - thanks
+  - how_are_you
+  - help_capabilities
+  - shopping_list_add
+  - shopping_list_show
+  - shopping_list_delete
+  - shopping_list_mark_done
+  - shopping_list_unmark_done
+  - agenda_add
+  - agenda_show
+  - agenda_delete
+  - agenda_mark_done
+  - agenda_unmark_done
+  - search_product
+  - user_connect
+  - transfer_to_human
+  - general_knowledge
+  - conversational
+  - fallback
+
+entities:
+  - item
+  - event
+  - date
+  - searchTerm
+
+slots:
+  item:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: item
+  event:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: event
+  date:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: date
+  searchTerm:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: searchTerm
+
+responses:
+  utter_greeting:
+    - text: "Hello! How can I help you today?"
+  utter_fallback:
+    - text: "I'm sorry, I didn't understand that. You can add items to your shopping list, view your calendar, or search for products."

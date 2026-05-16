@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vogo Admin Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#0f1117;color:#e2e8f0;min-height:100vh}
+:root{--primary:#6366f1;--primary-dark:#4f46e5;--green:#10b981;--red:#ef4444;--yellow:#f59e0b;--card:#1e2130;--border:#2d3748;--text:#e2e8f0;--muted:#94a3b8}
+
+/* LOGIN */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#0f1117 0%,#1a1f2e 100%)}
+.login-box{background:#1e2130;border:1px solid #2d3748;border-radius:20px;padding:48px 40px;width:100%;max-width:400px;text-align:center;box-shadow:0 25px 50px rgba(0,0,0,0.5)}
+.login-logo{width:64px;height:64px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:28px}
+.login-box h1{font-size:24px;font-weight:700;margin-bottom:8px}
+.login-box p{color:#94a3b8;font-size:14px;margin-bottom:32px}
+.login-box input{width:100%;padding:12px 16px;background:#0f1117;border:1px solid #2d3748;border-radius:10px;color:#e2e8f0;font-size:15px;margin-bottom:16px;outline:none;transition:.2s}
+.login-box input:focus{border-color:#6366f1}
+.btn{width:100%;padding:13px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:10px;color:white;font-size:15px;font-weight:600;cursor:pointer;transition:.2s}
+.btn:hover{opacity:.9;transform:translateY(-1px)}
+.login-error{color:#ef4444;font-size:13px;margin-top:8px;display:none}
+
+/* LAYOUT */
+#app{display:none;flex-direction:column;min-height:100vh}
+header{background:#1e2130;border-bottom:1px solid #2d3748;padding:16px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.header-left{display:flex;align-items:center;gap:12px}
+.logo-badge{width:36px;height:36px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px}
+header h1{font-size:18px;font-weight:700}
+.header-right{display:flex;align-items:center;gap:12px}
+.status-dot{width:8px;height:8px;border-radius:50%;background:#10b981;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.logout-btn{padding:7px 16px;background:transparent;border:1px solid #2d3748;border-radius:8px;color:#94a3b8;cursor:pointer;font-size:13px;transition:.2s}
+.logout-btn:hover{border-color:#6366f1;color:#e2e8f0}
+
+nav{display:flex;gap:4px;padding:16px 28px 0;border-bottom:1px solid #2d3748;background:#1e2130;overflow-x:auto}
+.tab{padding:10px 18px;border-radius:8px 8px 0 0;cursor:pointer;font-size:14px;font-weight:500;color:#94a3b8;border:none;background:transparent;transition:.2s;white-space:nowrap}
+.tab.active{background:#0f1117;color:#6366f1;border-bottom:2px solid #6366f1}
+.tab:hover:not(.active){color:#e2e8f0}
+
+main{flex:1;padding:28px;max-width:1400px;width:100%;margin:0 auto}
+.section{display:none}
+.section.active{display:block}
+
+/* CARDS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px}
+.stat-card{background:#1e2130;border:1px solid #2d3748;border-radius:14px;padding:20px;transition:.2s}
+.stat-card:hover{border-color:#6366f1;transform:translateY(-2px)}
+.stat-card .label{font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.stat-card .value{font-size:32px;font-weight:700;color:#e2e8f0}
+.stat-card .sub{font-size:12px;color:#94a3b8;margin-top:4px}
+.stat-card.green .value{color:#10b981}
+.stat-card.yellow .value{color:#f59e0b}
+.stat-card.red .value{color:#ef4444}
+.stat-card.purple .value{color:#8b5cf6}
+
+.card{background:#1e2130;border:1px solid #2d3748;border-radius:14px;padding:24px;margin-bottom:20px}
+.card h2{font-size:16px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.card h2 .icon{font-size:18px}
+
+/* BADGES */
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-green{background:#052e16;color:#10b981;border:1px solid #10b981}
+.badge-red{background:#450a0a;color:#ef4444;border:1px solid #ef4444}
+.badge-yellow{background:#422006;color:#f59e0b;border:1px solid #f59e0b}
+.badge-blue{background:#0c1a3a;color:#6366f1;border:1px solid #6366f1}
+
+/* TABLE */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{padding:10px 14px;text-align:left;color:#94a3b8;font-weight:500;border-bottom:1px solid #2d3748;background:#161924}
+td{padding:10px 14px;border-bottom:1px solid #1a1f2e;vertical-align:top}
+tr:hover td{background:#161924}
+
+/* AI PROVIDERS */
+.providers-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.provider-card{background:#161924;border:1px solid #2d3748;border-radius:12px;padding:18px}
+.provider-card .p-name{font-size:15px;font-weight:600;margin-bottom:4px}
+.provider-card .p-model{font-size:12px;color:#94a3b8;margin-bottom:12px}
+.provider-card.enabled{border-color:#10b981}
+.provider-card.enabled .p-name{color:#10b981}
+
+/* EMAIL */
+.email-form{display:flex;flex-direction:column;gap:12px;max-width:480px}
+.email-form input{padding:11px 14px;background:#161924;border:1px solid #2d3748;border-radius:10px;color:#e2e8f0;font-size:14px;outline:none;transition:.2s}
+.email-form input:focus{border-color:#6366f1}
+.action-btn{padding:11px 22px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:10px;color:white;font-size:14px;font-weight:600;cursor:pointer;transition:.2s}
+.action-btn:hover{opacity:.85}
+.action-btn.green{background:linear-gradient(135deg,#10b981,#059669)}
+.action-btn.red{background:linear-gradient(135deg,#ef4444,#dc2626)}
+.action-btn.yellow{background:linear-gradient(135deg,#f59e0b,#d97706)}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.result-box{padding:12px 16px;border-radius:10px;font-size:13px;margin-top:12px;display:none}
+.result-box.success{background:#052e16;border:1px solid #10b981;color:#10b981}
+.result-box.error{background:#450a0a;border:1px solid #ef4444;color:#ef4444}
+
+/* LOGS */
+.log-filters{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.log-filters select,.log-filters input{padding:8px 12px;background:#161924;border:1px solid #2d3748;border-radius:8px;color:#e2e8f0;font-size:13px;outline:none}
+.log-row{padding:10px 14px;border-bottom:1px solid #1a1f2e;font-size:12px;font-family:monospace}
+.log-row .log-time{color:#94a3b8}
+.log-row .log-msg{color:#e2e8f0;margin-top:2px}
+.log-level-info{border-left:3px solid #6366f1}
+.log-level-warn{border-left:3px solid #f59e0b}
+.log-level-error{border-left:3px solid #ef4444}
+.loading{text-align:center;padding:40px;color:#94a3b8}
+.refresh-btn{padding:8px 16px;background:#161924;border:1px solid #2d3748;border-radius:8px;color:#94a3b8;cursor:pointer;font-size:13px;transition:.2s}
+.refresh-btn:hover{border-color:#6366f1;color:#e2e8f0}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">🤖</div>
+    <h1>Vogo Admin Panel</h1>
+    <p>Enter admin token to continue</p>
+    <input type="password" id="token-input" placeholder="Admin Token" autocomplete="off">
+    <button class="btn" onclick="doLogin()">Sign In</button>
+    <div class="login-error" id="login-error">Invalid token. Please try again.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <div class="header-left">
+      <div class="logo-badge">🤖</div>
+      <h1>Vogo Admin</h1>
+    </div>
+    <div class="header-right">
+      <span class="status-dot" id="status-dot"></span>
+      <span id="status-text" style="font-size:13px;color:#94a3b8">Loading...</span>
+      <button class="logout-btn" onclick="doLogout()">Logout</button>
+    </div>
+  </header>
+
+  <nav>
+    <button class="tab active" onclick="showTab('dashboard',this)">📊 Dashboard</button>
+    <button class="tab" onclick="showTab('ai',this)">🤖 AI Models</button>
+    <button class="tab" onclick="showTab('logs',this)">📋 Logs</button>
+    <button class="tab" onclick="showTab('email',this)">📧 Email</button>
+    <button class="tab" onclick="showTab('sms',this)">💬 SMS</button>
+  </nav>
+
+  <main>
+    <!-- DASHBOARD -->
+    <div id="tab-dashboard" class="section active">
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card"><div class="label">Total Messages</div><div class="value" id="s-requests">—</div></div>
+        <div class="stat-card green"><div class="label">Conversations</div><div class="value" id="s-convs">—</div></div>
+        <div class="stat-card purple"><div class="label">Groq API Calls</div><div class="value" id="s-groq">—</div></div>
+        <div class="stat-card yellow"><div class="label">Recent Errors</div><div class="value" id="s-errors">—</div></div>
+        <div class="stat-card"><div class="label">Uptime</div><div class="value" id="s-uptime">—</div></div>
+        <div class="stat-card"><div class="label">Memory Used</div><div class="value" id="s-memory">—</div></div>
+      </div>
+
+      <div class="card">
+        <h2><span class="icon">🔌</span> System Status</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Service</th><th>Status</th><th>Details</th></tr></thead>
+            <tbody id="system-status-body">
+              <tr><td colspan="3" class="loading">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI MODELS -->
+    <div id="tab-ai" class="section">
+      <div class="card">
+        <h2><span class="icon">🤖</span> AI Provider Status</h2>
+        <div class="providers-grid" id="providers-grid">
+          <div class="loading">Loading...</div>
+        </div>
+      </div>
+      <div class="card">
+        <h2><span class="icon">🔀</span> Role Routing</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>User Role</th><th>AI Model</th></tr></thead>
+            <tbody id="role-routing-body"><tr><td colspan="2" class="loading">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h2><span class="icon">⚙️</span> AI Configuration</h2>
+        <div class="email-form">
+          <label style="font-size:13px;color:#94a3b8">Active Model (General Users)</label>
+          <select id="setting-ai-model" style="padding:11px 14px;background:#161924;border:1px solid #2d3748;border-radius:10px;color:#e2e8f0;font-size:14px;outline:none;">
+            <option value="ai_groq">Groq (Llama 3)</option>
+            <option value="ai_openai">OpenAI (ChatGPT)</option>
+            <option value="ai_gemini">Google (Gemini)</option>
+            <option value="ai_claude">Anthropic (Claude)</option>
+            <option value="ai_ollama">Ollama (Local Llama)</option>
+            <option value="ai_basic">Basic (Offline)</option>
+          </select>
+
+          <label style="font-size:13px;color:#94a3b8;margin-top:10px">API Keys (Leave blank to keep existing)</label>
+          <input type="password" id="setting-groq-key" placeholder="Groq API Key (gsk_...)">
+          <input type="password" id="setting-openai-key" placeholder="OpenAI API Key (sk-...)">
+          <input type="password" id="setting-gemini-key" placeholder="Gemini API Key (AIza...)">
+          <input type="password" id="setting-claude-key" placeholder="Anthropic API Key (sk-ant-...)">
+
+          <div class="btn-row">
+            <button class="action-btn green" onclick="saveAISettings()">💾 Save AI Settings</button>
+          </div>
+          <div class="result-box" id="ai-settings-result"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOGS -->
+    <div id="tab-logs" class="section">
+      <div class="card">
+        <h2><span class="icon">📋</span> Conversation Logs</h2>
+        <div class="log-filters">
+          <select id="log-category">
+            <option value="">All Categories</option>
+            <option value="user_message">User Messages</option>
+            <option value="chatbot_response">Bot Responses</option>
+            <option value="chatbot_action">Actions</option>
+            <option value="api_call">API Calls</option>
+            <option value="api_error">Errors</option>
+          </select>
+          <input type="number" id="log-limit" value="50" min="10" max="500" style="width:80px" placeholder="Limit">
+          <button class="refresh-btn" onclick="loadLogs()">🔄 Refresh</button>
+          <button class="action-btn red" style="padding:8px 14px;font-size:13px" onclick="clearLogs()">🗑 Clear Old Logs</button>
+        </div>
+        <div id="logs-container"><div class="loading">Loading logs...</div></div>
+      </div>
+    </div>
+
+    <!-- EMAIL -->
+    <div id="tab-email" class="section">
+      <div class="card">
+        <h2><span class="icon">📧</span> Email Configuration</h2>
+        <div id="email-status-box" style="margin-bottom:20px"></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Setting</th><th>Value</th></tr></thead>
+            <tbody id="email-config-body"><tr><td colspan="2" class="loading">Loading...</td></tr></tbody>
+          </table>
+        </div>
+        <p style="margin-top:12px;font-size:13px;color:#94a3b8">Configure in <code style="background:#161924;padding:2px 6px;border-radius:4px">.env</code> file: <code style="background:#161924;padding:2px 6px;border-radius:4px">EMAIL_HOST, EMAIL_USER, EMAIL_PASS, EMAIL_ADMIN_TO</code></p>
+      </div>
+
+      <div class="card">
+        <h2><span class="icon">🧪</span> Test Email</h2>
+        <div class="email-form">
+          <input type="email" id="test-email-to" placeholder="Send test to (leave blank for admin email)">
+          <div class="btn-row">
+            <button class="action-btn" onclick="sendTestEmail()">📤 Send Test Email</button>
+            <button class="action-btn green" onclick="verifySMTP()">✅ Verify SMTP</button>
+            <button class="action-btn yellow" onclick="sendSummary()">📊 Send Daily Summary</button>
+          </div>
+        </div>
+        <div class="result-box" id="email-result"></div>
+      </div>
+    </div>
+
+    <!-- SMS -->
+    <div id="tab-sms" class="section">
+      <div class="card">
+        <h2><span class="icon">💬</span> SMS Configuration (Twilio)</h2>
+        <div id="sms-status-box" style="margin-bottom:20px"></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Setting</th><th>Value</th></tr></thead>
+            <tbody id="sms-config-body"><tr><td colspan="2" class="loading">Loading...</td></tr></tbody>
+          </table>
+        </div>
+        <p style="margin-top:12px;font-size:13px;color:#94a3b8">Configure in <code style="background:#161924;padding:2px 6px;border-radius:4px">.env</code>: <code style="background:#161924;padding:2px 6px;border-radius:4px">TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM, TWILIO_ADMIN_TO</code></p>
+      </div>
+      <div class="card">
+        <h2><span class="icon">🧪</span> Test SMS</h2>
+        <div class="email-form">
+          <input type="tel" id="test-sms-to" placeholder="Phone e.g. +923001234567 (blank = admin number)">
+          <div class="btn-row">
+            <button class="action-btn green" onclick="sendTestSms()">📤 Send Test SMS</button>
+          </div>
+        </div>
+        <div class="result-box" id="sms-test-result"></div>
+      </div>
+      <div class="card">
+        <h2><span class="icon">📨</span> Send Custom SMS</h2>
+        <div class="email-form">
+          <input type="tel" id="custom-sms-to" placeholder="To: +923001234567">
+          <textarea id="custom-sms-msg" placeholder="SMS message..." style="padding:11px 14px;background:#161924;border:1px solid #2d3748;border-radius:10px;color:#e2e8f0;font-size:14px;outline:none;resize:vertical;min-height:80px;font-family:inherit"></textarea>
+          <div class="btn-row">
+            <button class="action-btn" onclick="sendCustomSms()">📤 Send SMS</button>
+          </div>
+        </div>
+        <div class="result-box" id="sms-custom-result"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+let ADMIN_TOKEN = '';
+const BASE = '';
+
+function doLogin() {
+  const t = document.getElementById('token-input').value.trim();
+  if (!t) return;
+  ADMIN_TOKEN = t;
+  fetch(`${BASE}/admin/stats`, { headers: { 'x-admin-token': t } })
+    .then(r => {
+      if (r.status === 401) throw new Error('Invalid token');
+      return r.json();
+    })
+    .then(() => {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+      document.getElementById('app').style.flexDirection = 'column';
+      loadAll();
+      setInterval(loadStats, 15000);
+    })
+    .catch(() => {
+      document.getElementById('login-error').style.display = 'block';
+      ADMIN_TOKEN = '';
+    });
+}
+
+document.getElementById('token-input').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+function doLogout() {
+  ADMIN_TOKEN = '';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('token-input').value = '';
+}
+
+function api(path, opts={}) {
+  return fetch(`${BASE}${path}`, {
+    ...opts,
+    headers: { 'x-admin-token': ADMIN_TOKEN, 'Content-Type': 'application/json', ...(opts.headers||{}) }
+  }).then(r => r.json());
+}
+
+function showTab(name, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='logs') loadLogs();
+  if(name==='email') loadEmailStatus();
+  if(name==='sms') loadSmsStatus();
+  if(name==='ai') loadAI();
+}
+
+function loadAll() { loadStats(); loadAI(); loadEmailStatus(); }
+
+function fmtUptime(ms) {
+  const s=Math.floor(ms/1000), h=Math.floor(s/3600), m=Math.floor((s%3600)/60);
+  return `${h}h ${m}m`;
+}
+
+function loadStats() {
+  api('/admin/stats').then(d => {
+    document.getElementById('s-requests').textContent = d.totalRequests ?? '—';
+    document.getElementById('s-convs').textContent = d.totalConversations ?? '—';
+    document.getElementById('s-groq').textContent = d.groq?.calls ?? '—';
+    document.getElementById('s-errors').textContent = d.recentErrors ?? '—';
+    document.getElementById('s-uptime').textContent = fmtUptime(d.uptime || 0);
+    const mem = d.memory?.heapUsed;
+    document.getElementById('s-memory').textContent = mem ? Math.round(mem/1024/1024)+'MB' : '—';
+
+    const dot = document.getElementById('status-dot');
+    dot.style.background = d.status === 'healthy' ? '#10b981' : '#ef4444';
+    document.getElementById('status-text').textContent = d.status === 'healthy' ? 'Healthy' : 'Degraded';
+
+    const tbody = document.getElementById('system-status-body');
+    const rows = [
+      ['Vogo API', d.status==='healthy', ''],
+      ['NLP Service', d.logging?.enabled !== undefined, ''],
+      ['Groq LLM', d.groq?.enabled, d.groq?.model || ''],
+      ['Ollama', d.ai?.providers?.ai_ollama?.enabled, d.ai?.providers?.ai_ollama?.model || 'Not configured'],
+      ['OpenAI', d.ai?.providers?.ai_openai?.enabled, d.ai?.providers?.ai_openai?.model || ''],
+      ['Gemini', d.ai?.providers?.ai_gemini?.enabled, d.ai?.providers?.ai_gemini?.model || ''],
+      ['Email Service', d.email?.enabled, d.email?.host ? `${d.email.host}:${d.email.port}` : 'Not configured'],
+      ['Logging (SQLite)', d.logging?.persistentReady, d.logging?.dbPath?.split(/[/\\]/).pop() || ''],
+    ];
+    tbody.innerHTML = rows.map(([name, ok, detail]) => `
+      <tr>
+        <td style="font-weight:500">${name}</td>
+        <td><span class="badge ${ok ? 'badge-green' : 'badge-red'}">${ok ? '● Online' : '● Offline'}</span></td>
+        <td style="color:#94a3b8;font-size:12px">${detail}</td>
+      </tr>`).join('');
+  }).catch(()=>{});
+}
+
+function loadAI() {
+  api('/admin/ai').then(d => {
+    const grid = document.getElementById('providers-grid');
+    const names = { ai_ollama:'🦙 Ollama (Llama 3.1)', ai_groq:'⚡ Groq (Llama)', ai_openai:'🧠 OpenAI (ChatGPT)', ai_gemini:'💎 Gemini', ai_claude:'🎭 Anthropic (Claude)', ai_basic:'📦 Basic (Offline)' };
+    grid.innerHTML = Object.entries(d.providers || {}).map(([key, p]) => `
+      <div class="provider-card ${p.enabled ? 'enabled' : ''}">
+        <div class="p-name">${names[key] || key}</div>
+        <div class="p-model">${p.model || 'N/A'}</div>
+        <span class="badge ${p.enabled ? 'badge-green' : 'badge-red'}">${p.enabled ? '● Active' : '● Disabled'}</span>
+      </div>`).join('');
+
+    const tbody = document.getElementById('role-routing-body');
+    tbody.innerHTML = Object.entries(d.roleModelMap || {}).map(([role, model]) => `
+      <tr><td style="font-weight:500;text-transform:capitalize">${role}</td><td><span class="badge badge-blue">${names[model] ? names[model].split(' ')[1] : model}</span></td></tr>`).join('');
+      
+    if (d.roleModelMap && d.roleModelMap.general) {
+      const select = document.getElementById('setting-ai-model');
+      if (select) select.value = d.roleModelMap.general;
+    }
+  }).catch(()=>{});
+}
+
+function loadLogs() {
+  const cat = document.getElementById('log-category').value;
+  const limit = document.getElementById('log-limit').value || 50;
+  const container = document.getElementById('logs-container');
+  container.innerHTML = '<div class="loading">Loading...</div>';
+  api(`/admin/logs?limit=${limit}${cat ? '&category='+cat : ''}`).then(d => {
+    if (!d.logs || !d.logs.length) { container.innerHTML = '<div class="loading">No logs found.</div>'; return; }
+    container.innerHTML = d.logs.map(l => {
+      const meta = l.metadata ? (() => { try { const m=JSON.parse(l.metadata); return m.text ? `<span style="color:#6366f1">"${m.text.substring(0,80)}"</span>` : ''; } catch(e){return '';} })() : '';
+      return `<div class="log-row log-level-${l.log_level}">
+        <span class="log-time">${l.created_at} [${l.log_level.toUpperCase()}] [${l.log_category}]${l.user_ip ? ' '+l.user_ip : ''}</span>
+        <div class="log-msg">${l.message} ${meta}</div>
+      </div>`;
+    }).join('');
+  }).catch(()=>{ container.innerHTML = '<div class="loading">Failed to load logs.</div>'; });
+}
+
+function clearLogs() {
+  if (!confirm('Clear logs older than 7 days?')) return;
+  api('/admin/logs/clear', { method:'POST', body: JSON.stringify({days:7}) })
+    .then(d => alert(d.message || 'Done'))
+    .catch(()=>alert('Failed'));
+}
+
+function loadEmailStatus() {
+  api('/admin/stats').then(d => {
+    const e = d.email || {};
+    const box = document.getElementById('email-status-box');
+    box.innerHTML = `<span class="badge ${e.enabled ? 'badge-green' : 'badge-red'}" style="font-size:13px;padding:6px 14px">${e.enabled ? '✅ Email Service Active' : '❌ Email Not Configured'}</span>`;
+    const tbody = document.getElementById('email-config-body');
+    tbody.innerHTML = [
+      ['SMTP Host', e.host || '—'],
+      ['Port', e.port || '—'],
+      ['From', e.from || '—'],
+      ['Admin Notify To', e.adminTo || '—'],
+    ].map(([k,v]) => `<tr><td style="font-weight:500;color:#94a3b8">${k}</td><td>${v}</td></tr>`).join('');
+  });
+}
+
+function showResult(elId, msg, ok) {
+  const el = document.getElementById(typeof elId==='string' && document.getElementById(elId) ? elId : 'email-result');
+  if(!el) return;
+  el.textContent = msg;
+  el.className = `result-box ${ok ? 'success' : 'error'}`;
+  el.style.display = 'block';
+  setTimeout(()=>el.style.display='none', 5000);
+}
+
+function sendTestEmail() {
+  const to = document.getElementById('test-email-to').value;
+  api('/admin/email/test', { method:'POST', body: JSON.stringify({to}) })
+    .then(d => showResult('email-result', d.success ? '✅ Test email sent!' : '❌ Failed: ' + d.error, d.success))
+    .catch(()=>showResult('email-result', '❌ Request failed', false));
+}
+
+function verifySMTP() {
+  api('/admin/email/verify')
+    .then(d => showResult('email-result', d.ok ? '✅ SMTP verified!' : '❌ SMTP Error: ' + d.error, d.ok))
+    .catch(()=>showResult('email-result', '❌ Request failed', false));
+}
+
+function sendSummary() {
+  api('/admin/email/summary', { method:'POST', body:'{}' })
+    .then(d => showResult('email-result', d.success ? '✅ Summary sent!' : '❌ Failed: ' + d.error, d.success))
+    .catch(()=>showResult('email-result', '❌ Request failed', false));
+}
+
+function loadSmsStatus() {
+  api('/admin/stats').then(d => {
+    const s = d.sms || {};
+    const box = document.getElementById('sms-status-box');
+    box.innerHTML = `<span class="badge ${s.enabled?'badge-green':'badge-red'}" style="font-size:13px;padding:6px 14px">${s.enabled?'✅ Twilio SMS Active':'❌ SMS Not Configured'}</span>`;
+    document.getElementById('sms-config-body').innerHTML = [
+      ['Provider', s.provider||'Twilio'],
+      ['From Number', s.from||'—'],
+      ['Admin Notify To', s.adminTo||'—'],
+    ].map(([k,v])=>`<tr><td style="font-weight:500;color:#94a3b8">${k}</td><td>${v}</td></tr>`).join('');
+  });
+}
+
+function sendTestSms() {
+  const to = document.getElementById('test-sms-to').value;
+  api('/admin/sms/test', { method:'POST', body: JSON.stringify({to}) })
+    .then(d => showResult('sms-test-result', d.success ? `✅ SMS sent! SID: ${d.sid}` : '❌ ' + d.error, d.success))
+    .catch(()=>showResult('sms-test-result', '❌ Request failed', false));
+}
+
+function sendCustomSms() {
+  const to = document.getElementById('custom-sms-to').value;
+  const message = document.getElementById('custom-sms-msg').value;
+  if (!to || !message) return showResult('sms-custom-result', '❌ Phone and message required', false);
+  api('/admin/sms/send', { method:'POST', body: JSON.stringify({to, message}) })
+    .then(d => showResult('sms-custom-result', d.success ? `✅ Sent to ${d.to}` : '❌ ' + d.error, d.success))
+    .catch(()=>showResult('sms-custom-result', '❌ Request failed', false));
+}
+
+function saveAISettings() {
+  const updates = {};
+  
+  const model = document.getElementById('setting-ai-model').value;
+  if (model) updates.AI_MODEL_GENERAL = model;
+  
+  const groq = document.getElementById('setting-groq-key').value;
+  if (groq) updates.GROQ_API_KEY = groq;
+  
+  const openai = document.getElementById('setting-openai-key').value;
+  if (openai) updates.OPENAI_API_KEY = openai;
+  
+  const gemini = document.getElementById('setting-gemini-key').value;
+  if (gemini) updates.GEMINI_API_KEY = gemini;
+  
+  const claude = document.getElementById('setting-claude-key').value;
+  if (claude) updates.ANTHROPIC_API_KEY = claude;
+  
+  if (Object.keys(updates).length === 0) return;
+  
+  api('/admin/settings/save', { method: 'POST', body: JSON.stringify(updates) })
+    .then(d => {
+      showResult('ai-settings-result', d.success ? '✅ Settings saved & applied!' : '❌ Failed: ' + d.error, d.success);
+      if (d.success) {
+        document.getElementById('setting-groq-key').value = '';
+        document.getElementById('setting-openai-key').value = '';
+        document.getElementById('setting-gemini-key').value = '';
+        document.getElementById('setting-claude-key').value = '';
+        setTimeout(loadAI, 1000);
+      }
+    })
+    .catch(() => showResult('ai-settings-result', '❌ Request failed', false));
+}
+</script>
+</body>
+</html>

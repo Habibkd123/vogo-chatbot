@@ -94,6 +94,89 @@
   };
 
   // ============================================================================
+  // PREDEFINED QUESTION TRANSLATIONS
+  // Vogo API only stores questions in Romanian. We translate them client-side.
+  // Key: Romanian text (lowercase, trimmed) → translations per language
+  // ============================================================================
+  const QUESTION_TRANSLATIONS = {
+    'vreau recomandari generale pentru hrana': {
+      en: 'I want general food recommendations',
+      ro: 'Vreau recomandari generale pentru hrana',
+      it: 'Voglio consigli generali sul cibo',
+      fr: 'Je veux des recommandations generales sur la nourriture',
+      de: 'Ich möchte allgemeine Essensempfehlungen'
+    },
+    'vreau magazine premium in zona': {
+      en: 'I want premium stores nearby',
+      ro: 'Vreau magazine premium in zona',
+      it: 'Voglio negozi premium nella zona',
+      fr: 'Je veux des magasins premium a proximite',
+      de: 'Ich möchte Premium-Geschäfte in der Nähe'
+    },
+    'asistenta vip personalizata': {
+      en: 'Personalized VIP assistance',
+      ro: 'Asistenta VIP personalizata',
+      it: 'Assistenza VIP personalizzata',
+      fr: 'Assistance VIP personnalisee',
+      de: 'Personalisierte VIP-Assistenz'
+    },
+    'cauta produse': {
+      en: 'Search products',
+      ro: 'Cauta produse',
+      it: 'Cerca prodotti',
+      fr: 'Rechercher des produits',
+      de: 'Produkte suchen'
+    },
+    'lista de cumparaturi': {
+      en: 'Shopping list',
+      ro: 'Lista de cumparaturi',
+      it: 'Lista della spesa',
+      fr: 'Liste de courses',
+      de: 'Einkaufsliste'
+    },
+    'agenda / calendar': {
+      en: 'Agenda / Calendar',
+      ro: 'Agenda / Calendar',
+      it: 'Agenda / Calendario',
+      fr: 'Agenda / Calendrier',
+      de: 'Agenda / Kalender'
+    },
+    'conectare cont': {
+      en: 'Account login',
+      ro: 'Conectare cont',
+      it: 'Accesso account',
+      fr: 'Connexion au compte',
+      de: 'Konto anmelden'
+    },
+    'asistenta': {
+      en: 'Assistance',
+      ro: 'Asistenta',
+      it: 'Assistenza',
+      fr: 'Assistance',
+      de: 'Hilfe'
+    }
+  };
+
+  // Translate a question text to the target language
+  // Falls back to original Romanian text if no translation found
+  function translateQuestion(text, lang) {
+    if (!text || lang === 'ro') return text;
+    const key = text.toLowerCase().trim()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // strip diacritics for matching
+      .replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+    const match = QUESTION_TRANSLATIONS[key];
+    if (match) return match[lang] || match['en'] || text;
+    // Fuzzy: try partial key match
+    for (const [roKey, translations] of Object.entries(QUESTION_TRANSLATIONS)) {
+      if (key.includes(roKey) || roKey.includes(key)) {
+        return translations[lang] || translations['en'] || text;
+      }
+    }
+    return text; // unchanged if no translation
+  }
+
+
+  // ============================================================================
   // parseDone: API returns done_checked as STRING "0" or "1", NOT boolean.
   // !!("0") = true in JS because "0" is a non-empty string — must compare explicitly.
   // ============================================================================
@@ -122,6 +205,9 @@
       this.voiceEnabled = true;       // TTS speak-back toggle (internal)
       this.voiceSpeakEnabled = localStorage.getItem('vogo_voice_reply') !== 'off'; // user toggle
       this.currentAudio = null;       // HTMLAudioElement for TTS playback
+      // ── Race Condition Guard ──────────────────────────────────────────────
+      this.isProcessing = false;      // true while waiting for server response
+      this.messageQueue = [];         // queue for messages sent during processing
       this.init();
     }
 
@@ -134,12 +220,12 @@
       this._updateVoiceToggleBtn();  // set initial icon state
       this.showGreeting();
       this.loadInitialQuestions();
-      // Disable attach button by default (only enabled in live chat)
+      // Attach button: always enabled (image upload works in both normal and live chat)
       if (this.attachBtn) {
-        this.attachBtn.disabled = true;
-        this.attachBtn.title = 'Image upload only available in live chat';
-        this.attachBtn.style.opacity = '0.5';
-        this.attachBtn.style.cursor = 'not-allowed';
+        this.attachBtn.disabled = false;
+        this.attachBtn.title = 'Attach image';
+        this.attachBtn.style.opacity = '1';
+        this.attachBtn.style.cursor = 'pointer';
       }
     }
 
@@ -185,6 +271,16 @@
             <button id="vogo-mic" title="Voice input" class="vogo-mic-btn">&#127908;</button>
             <button id="vogo-send">${this.t('send')}</button>
           </div>
+          <div style="background:#f7f7f8; border-top:1px solid #e5e7eb; padding:6px 15px; border-radius:0 0 16px 16px; display:flex; justify-content:center;">
+            <select id="vogo-ai-model-select" style="font-size:12px; padding:4px 8px; border-radius:6px; border:1px solid #d1d5db; background:white; color:#374151; outline:none; cursor:pointer;">
+              <option value="">🔮 Auto (Default AI)</option>
+              <option value="ai_groq">⚡ Groq (Llama 3)</option>
+              <option value="ai_openai">🧠 OpenAI (ChatGPT)</option>
+              <option value="ai_gemini">💎 Google (Gemini)</option>
+              <option value="ai_claude">🎭 Anthropic (Claude)</option>
+              <option value="ai_ollama">🦙 Ollama (Local)</option>
+            </select>
+          </div>
         </div>
       `;
 
@@ -202,6 +298,7 @@
       this.imageInput = document.getElementById('vogo-image-input');
       this.micBtn = document.getElementById('vogo-mic');          // Voice mic button
       this.voiceToggleBtn = document.getElementById('vogo-voice-toggle'); // TTS toggle
+      this.aiSelect = document.getElementById('vogo-ai-model-select');
     }
 
     setupEventListeners() {
@@ -278,6 +375,7 @@
     }
 
     changeLanguage(lang) {
+      const prevLang = this.currentLanguage;
       if (lang === 'auto') {
         const browserLang = navigator.language ? navigator.language.substring(0, 2).toLowerCase() : 'en';
         const supported = ['en', 'ro', 'it', 'fr', 'de'];
@@ -285,15 +383,45 @@
       } else {
         this.currentLanguage = lang;
       }
-      
+
       const select = document.getElementById('vogo-lang-dropdown');
       if (select && select.value !== lang && lang !== 'auto') {
-         select.value = lang;
+        select.value = lang;
       }
 
+      // Update input placeholder and send button
       if (this.input) this.input.placeholder = this.t('inputPlaceholder');
       if (this.sendBtn) this.sendBtn.textContent = this.t('send');
+
+      // Update greeting in-place (no re-render)
+      const greetingEl = document.getElementById('vogo-greeting-text');
+      if (greetingEl) {
+        greetingEl.innerHTML = '<strong>' + this.t('greeting') + '</strong><br>' + this.t('subGreeting');
+      }
+
       console.log('Language changed to:', this.currentLanguage, '(selected:', lang, ')');
+
+      // Reload predefined questions only when user explicitly picks a language
+      // (skip on 'auto' initial call to avoid double-load with loadInitialQuestions)
+      if (lang !== 'auto' && this.currentLanguage !== prevLang) {
+        this._reloadPredefinedQuestions();
+      } else if (lang !== 'auto') {
+        // Same language re-selected — still reload in case questions cleared
+        this._reloadPredefinedQuestions();
+      }
+    }
+
+    async _reloadPredefinedQuestions() {
+      // Only reload if at root level (no active sub-navigation)
+      if (this._inSubNav) return;
+      try {
+        const response = await this.callAPI('getPredefinedQA', { parent_id: null, lang: this.currentLanguage });
+        if (response.data && response.data.length > 0) {
+          this.showPredefinedQuestions(response.data);
+        }
+      } catch (e) {
+        console.warn('Could not reload questions for lang:', this.currentLanguage);
+      }
     }
 
     t(key) {
@@ -320,6 +448,7 @@
     showGreeting() {
       const container = document.createElement('div');
       container.className = 'vogo-bot-message-container';
+      container.id = 'vogo-greeting-container';
 
       const icon = document.createElement('img');
       icon.src = CONFIG.iconPath;
@@ -330,6 +459,7 @@
 
       const greeting = document.createElement('div');
       greeting.className = 'vogo-bot-message';
+      greeting.id = 'vogo-greeting-text';
       greeting.innerHTML = '<strong>' + this.t('greeting') + '</strong><br>' + this.t('subGreeting');
       container.appendChild(greeting);
 
@@ -462,23 +592,35 @@
     }
 
     showPredefinedQuestions(questions) {
-      const container = document.createElement('div');
-      container.className = 'vogo-predefined-questions';
+      const CONTAINER_ID = 'vogo-predefined-root';
+      const lang = this.currentLanguage || 'en';
+
+      // Find existing container and REPLACE it (never append duplicate)
+      let container = document.getElementById(CONTAINER_ID);
+      if (container) {
+        container.innerHTML = ''; // clear old buttons
+      } else {
+        container = document.createElement('div');
+        container.id = CONTAINER_ID;
+        container.className = 'vogo-predefined-questions';
+        this.messagesContainer.appendChild(container);
+      }
 
       questions.forEach(q => {
+        const displayText = translateQuestion(q.text, lang);
         const btn = document.createElement('button');
         btn.className = 'vogo-question-btn';
         btn.innerHTML = `
           <svg viewBox="0 0 24 24">
             <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
           </svg>
-          <span>${q.text}</span>
+          <span>${displayText}</span>
         `;
+        // Pass original question object so API still gets correct ID
         btn.addEventListener('click', () => this.handleQuestionClick(q));
         container.appendChild(btn);
       });
 
-      this.messagesContainer.appendChild(container);
       this.scrollToBottom();
     }
 
@@ -832,19 +974,15 @@
       const file = event.target.files[0];
       if (!file) return;
 
-      if (!this.liveChatActive || !this.liveChatThreadId) {
-        this.addBotMessage('Image upload is only available when connected to a human operator. Please request human support first.');
-        this.imageInput.value = '';
-        return;
-      }
-
       if (!file.type.startsWith('image/')) {
         this.addBotMessage('Please select an image file (JPEG, PNG, GIF, WebP).');
+        this.imageInput.value = '';
         return;
       }
 
       if (file.size > 5 * 1024 * 1024) {
         this.addBotMessage('Image is too large. Maximum size is 5MB.');
+        this.imageInput.value = '';
         return;
       }
 
@@ -853,18 +991,47 @@
 
       try {
         this.attachBtn.disabled = true;
-        this.attachBtn.textContent = '...';
-        
+        this.attachBtn.textContent = '⏳';
+
         const response = await fetch('/api/upload-image', {
           method: 'POST',
           body: formData
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
+          // Show image in chat (user side)
           this.addUserMessageWithImage(data.imageUrl, file.name);
-          await this.sendLiveChatMessage('', data.imageUrl);
+
+          if (this.liveChatActive && this.liveChatThreadId) {
+            // Live chat: send to human operator
+            await this.sendLiveChatMessage('', data.imageUrl);
+          } else {
+            // Normal chat: tell bot an image was shared
+            this.showTypingIndicator();
+            try {
+              const botRes = await fetch('/api/chatbot-nlp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  text: '[IMAGE_SHARED:' + data.imageUrl + '] User shared an image: ' + file.name,
+                  language: this.currentLanguage || 'auto',
+                  imageUrl: data.imageUrl
+                })
+              });
+              const botData = await botRes.json();
+              this.hideTypingIndicator();
+              if (botData.success && botData.result && botData.result.response) {
+                this.addBotMessage(botData.result.response);
+              } else {
+                this.addBotMessage('🖼️ Image received! I can see your image: ' + file.name + '. How can I help you with it?');
+              }
+            } catch (e) {
+              this.hideTypingIndicator();
+              this.addBotMessage('🖼️ Image uploaded: ' + file.name);
+            }
+          }
         } else {
           this.addBotMessage('Failed to upload image: ' + (data.message || 'Unknown error'));
         }
@@ -1225,6 +1392,8 @@
     // =========================================================================
     // MESSAGE SENDING
     // FIX: mark/unmark done handler uses database ID directly, not fuzzy name match
+    // FIX: isProcessing guard prevents race condition on rapid inputs
+    // FIX: messageQueue ensures messages sent during processing are handled in order
     // =========================================================================
     async sendMessage() {
       const text = this.input.value.trim();
@@ -1238,10 +1407,65 @@
         return;
       }
 
+      // ── Race Condition Guard ────────────────────────────────────────────────
+      // If a request is already in-flight, queue this message and return.
+      // The queue will be drained after the current response is received.
+      if (this.isProcessing) {
+        // Show user message immediately so they see it was received
+        this.addUserMessage(text);
+        this.input.value = '';
+        this.messageQueue.push(text);
+        console.log('[queue] Queued message:', text, '| Queue length:', this.messageQueue.length);
+        return;
+      }
+
+      this._startProcessing(text);
+    }
+
+    // Lock input + send button, show typing indicator, fire the NLP request
+    _startProcessing(text) {
+      this.isProcessing = true;
       this.addUserMessage(text);
       this.input.value = '';
+      this._setInputLocked(true);
       this.showTypingIndicator();
+      this._doFetch(text);
+    }
 
+    // Disable / enable input + send button during processing
+    _setInputLocked(locked) {
+      if (this.input)   { this.input.disabled = locked; }
+      if (this.sendBtn) {
+        this.sendBtn.disabled = locked;
+        this.sendBtn.style.opacity = locked ? '0.5' : '1';
+        this.sendBtn.textContent   = locked ? '...' : this.t('send');
+      }
+      // Mic: briefly show ⌛ while processing, restore right after response
+      if (locked) {
+        this._setMicState('processing');
+      } else if (!this.isSpeaking) {
+        // Only restore to idle if TTS is not playing
+        this._setMicState('idle');
+      }
+    }
+
+    // Called when processing finishes — drains queue if needed
+    _finishProcessing() {
+      this.isProcessing = false;
+      this._setInputLocked(false);
+      this.input.focus();
+
+      // Process next queued message (FIFO)
+      if (this.messageQueue.length > 0) {
+        const next = this.messageQueue.shift();
+        console.log('[queue] Processing queued message:', next, '| Remaining:', this.messageQueue.length);
+        // Small delay so UI updates are visible
+        setTimeout(() => this._startProcessing(next), 300);
+      }
+    }
+
+    // Core NLP fetch — separated from sendMessage() for queue support
+    async _doFetch(text) {
       try {
         const response = await fetch(CONFIG.nlpUrl, {
           method: 'POST',
@@ -1251,7 +1475,8 @@
           },
           body: JSON.stringify({
             text: text,
-            language: 'auto'
+            language: 'auto',
+            aiModel: this.aiSelect ? this.aiSelect.value : null
           })
         });
 
@@ -1287,7 +1512,6 @@
               this.showSearchResults(action.results);
 
             // Mark/unmark done via text command
-            // FIX: use database ID directly — no fuzzy name matching that hits wrong items
             } else if (action.markedItem && action.markedType && action.success) {
               const keyPrefix = action.markedType === 'shopping' ? 'vogo_shop_' : 'vogo_agenda_';
               const isUnmark = !!(action.isUnmark);
@@ -1336,7 +1560,7 @@
             } else if (action.authFailed) {
               this.setPasswordMode(false);
 
-            // Override message (e.g. add confirmation, duplicate warning, "Which event?" prompt)
+            // Override message
             } else if (action.overrideResponse && action.message && action.message !== result.response) {
               const msg = String(action.message)
                 .replace(/\b(\d{4}-\d{2}-\d{2})\s+\d{2}:\d{2}:\d{2}\b/g, '$1');
@@ -1350,6 +1574,9 @@
         this.hideTypingIndicator();
         this.addBotMessage(this.t('errorMessage'));
         console.error('NLP Error:', error);
+      } finally {
+        // Always unlock input + drain queue — even on network error
+        this._finishProcessing();
       }
     }
 
@@ -1374,12 +1601,19 @@
           return;
         }
 
-        const response = await this.callAPI('getPredefinedQA', { parent_id: question.id, lang: 'auto' });
+        const response = await this.callAPI('getPredefinedQA', { parent_id: question.id, lang: this.currentLanguage });
         this.hideTypingIndicator();
 
         if (response.data && response.data.length > 0) {
+          this._inSubNav = true; // entered sub-menu, suppress lang-change reload
           this.showPredefinedQuestions(response.data);
         } else {
+          // No sub-questions → leaf node, return to root questions
+          this._inSubNav = false;
+          const rootResp = await this.callAPI('getPredefinedQA', { parent_id: null, lang: this.currentLanguage });
+          if (rootResp.data && rootResp.data.length > 0) {
+            this.showPredefinedQuestions(rootResp.data);
+          }
           this.addBotMessage('Thank you for your question!');
         }
       } catch (error) {
@@ -1390,9 +1624,10 @@
     }
 
     async loadInitialQuestions() {
+      this._inSubNav = false; // at root level
       this.showTypingIndicator();
       try {
-        const response = await this.callAPI('getPredefinedQA', { parent_id: null, lang: 'auto' });
+        const response = await this.callAPI('getPredefinedQA', { parent_id: null, lang: this.currentLanguage });
         this.hideTypingIndicator();
         if (response.data && response.data.length > 0) {
           this.showPredefinedQuestions(response.data);
@@ -1460,69 +1695,111 @@
     // ============================================================================
 
     async toggleVoiceRecording() {
+      // If TTS is currently speaking → stop it and start listening
+      if (this.isSpeaking) {
+        this._stopTTS();
+        // Small delay so audio fully stops before mic opens
+        setTimeout(() => this._beginListening(), 150);
+        return;
+      }
+
       if (this.voiceRecording) {
         this.stopVoiceRecording();
         return;
       }
 
-      // Strategy 1: Try browser native Web Speech API first (works on mobile, no backend needed)
+      this._beginListening();
+    }
+
+    _beginListening() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (SpeechRecognition) {
         this._startWebSpeech(SpeechRecognition);
       } else {
-        // Strategy 2: Fallback to MediaRecorder + Python Whisper backend
-        await this.startVoiceRecording();
+        this.startVoiceRecording();
       }
+    }
+
+    _stopTTS() {
+      if (this.currentAudio) {
+        this.currentAudio.pause();
+        this.currentAudio = null;
+      }
+      this.isSpeaking = false;
+      this._setMicState('idle');
     }
 
     _startWebSpeech(SpeechRecognition) {
       const recognition = new SpeechRecognition();
 
       // Language mapping: chatbot lang code → BCP-47
+      // Added ur-PK (Urdu), ar (Arabic) support
       const langMap = {
         en: 'en-US', ro: 'ro-RO', it: 'it-IT',
-        fr: 'fr-FR', de: 'de-DE', es: 'es-ES', hi: 'hi-IN'
+        fr: 'fr-FR', de: 'de-DE', es: 'es-ES',
+        hi: 'hi-IN', ur: 'ur-PK', ar: 'ar-SA'
       };
       recognition.lang = langMap[this.currentLanguage] || 'en-US';
       recognition.continuous = false;
-      recognition.interimResults = false;
+      recognition.interimResults = true;  // live partial results = faster feedback
       recognition.maxAlternatives = 1;
 
       this.voiceRecording = true;
       this._setMicState('recording');
       this._activeRecognition = recognition;
 
+      let finalText = '';
+      // Auto-stop after 6 seconds so mic doesn't wait forever
+      const autoStopTimer = setTimeout(() => {
+        console.log('[VOICE] Auto-stop after 6s');
+        try { recognition.stop(); } catch(_) {}
+      }, 6000);
+
       recognition.onresult = (event) => {
-        const text = event.results[0][0].transcript.trim();
-        console.log('[VOICE] WebSpeech result:', text);
-        this.voiceRecording = false;
-        this._setMicState('idle');
-        if (text) {
-          this.input.value = text;
-          this.sendMessage();
-        } else {
-          this.addBotMessage("🎤 Didn't catch that. Please try again.");
+        // Collect final segments only (interimResults=true sends both)
+        finalText = '';
+        for (let i = 0; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            finalText += event.results[i][0].transcript;
+          }
         }
+        // Show live text in input box while speaking
+        const liveText = event.results[event.results.length - 1][0].transcript;
+        if (this.input) this.input.value = liveText;
       };
 
       recognition.onerror = (event) => {
-        console.log('[VOICE] WebSpeech error:', event.error, '— falling back to Whisper');
+        clearTimeout(autoStopTimer);
+        console.log('[VOICE] WebSpeech error:', event.error);
         this.voiceRecording = false;
         this._activeRecognition = null;
-        // Fallback to Whisper backend on error
-        if (event.error !== 'aborted') {
+        if (event.error === 'aborted') {
+          this._setMicState('idle');
+        } else if (event.error === 'no-speech') {
+          // No speech detected → silently try Whisper
+          console.log('[VOICE] No speech via WebSpeech → switching to Whisper');
           this.startVoiceRecording();
         } else {
-          this._setMicState('idle');
+          // Any other error → fallback to Whisper
+          console.log('[VOICE] Falling back to Whisper');
+          this.startVoiceRecording();
         }
       };
 
       recognition.onend = () => {
-        if (this.voiceRecording) {
-          this.voiceRecording = false;
-          this._setMicState('idle');
-        }
+        clearTimeout(autoStopTimer);
+        this.voiceRecording = false;
         this._activeRecognition = null;
+        const text = (finalText || (this.input ? this.input.value : '')).trim();
+        if (text) {
+          this.input.value = text;
+          this._setMicState('idle');
+          this.sendMessage();
+        } else {
+          // Empty result → silently try Whisper instead of showing error
+          console.log('[VOICE] WebSpeech returned empty → trying Whisper fallback');
+          this.startVoiceRecording();
+        }
       };
 
       recognition.start();
@@ -1629,50 +1906,75 @@
 
     async speakText(text) {
       if (!this.voiceEnabled || !text) return;
-      // Skip TTS for very long responses (>300 chars) to avoid long waits
-      const speakableText = text.length > 300 ? text.substring(0, 300) + '...' : text;
+      // Only speak first 150 chars — keeps TTS fast (< 1 second generation)
+      const speakableText = text.length > 150 ? text.substring(0, 150) : text;
       try {
         if (this.currentAudio) {
           this.currentAudio.pause();
           this.currentAudio = null;
         }
-        // Fetch TTS and convert to blob URL — stream starts immediately on server side
         const res = await fetch('/api/voice/tts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text: speakableText, language: this.currentLanguage })
         });
-        if (!res.ok) return; // TTS offline — silent fail, text still shown
+        if (!res.ok) return;
         const blob = await res.blob();
         const audioUrl = URL.createObjectURL(blob);
         this.currentAudio = new Audio(audioUrl);
-        this.currentAudio.onended = () => URL.revokeObjectURL(audioUrl);
-        // Start playback immediately — don't wait for canplaythrough
+
+        // Mark speaking state — mic btn becomes a stop-speaker button
+        this.isSpeaking = true;
+        this._setMicState('speaking');
+
+        this.currentAudio.onended = () => {
+          URL.revokeObjectURL(audioUrl);
+          this.isSpeaking = false;
+          this.currentAudio = null;
+          this._setMicState('idle'); // restore mic button after speech ends
+        };
+
         this.currentAudio.play().catch(err => {
           console.warn('[VOICE] TTS autoplay blocked:', err.message);
+          this.isSpeaking = false;
+          this._setMicState('idle');
         });
       } catch (err) {
-        // TTS errors are silent — text response is always shown
         console.warn('[VOICE] TTS playback error:', err.message);
+        this.isSpeaking = false;
+        this._setMicState('idle');
       }
     }
 
     _setMicState(state) {
       if (!this.micBtn) return;
       if (state === 'recording') {
-        this.micBtn.innerHTML = '&#9209;'; // ⏹ stop icon
+        this.micBtn.innerHTML = '&#9209;';   // ⏹ stop icon
         this.micBtn.title = 'Stop recording';
+        this.micBtn.disabled = false;
+        this.micBtn.style.opacity = '1';
         this.micBtn.classList.add('vogo-mic-btn--recording');
-        this.micBtn.classList.remove('vogo-mic-btn--processing');
-      } else if (state === 'processing') {
-        this.micBtn.innerHTML = '&#8987;'; // ⌛ processing
-        this.micBtn.title = 'Processing voice...';
-        this.micBtn.classList.remove('vogo-mic-btn--recording');
-        this.micBtn.classList.add('vogo-mic-btn--processing');
-      } else {
-        this.micBtn.innerHTML = '&#127908;'; // 🎤 mic
-        this.micBtn.title = 'Voice input';
+        this.micBtn.classList.remove('vogo-mic-btn--processing', 'vogo-mic-btn--speaking');
+      } else if (state === 'speaking') {
+        this.micBtn.innerHTML = '&#128266;'; // 🔊 speaker — click to stop & record
+        this.micBtn.title = 'Bot is speaking — click to stop & record';
+        this.micBtn.disabled = false;        // clickable so user can interrupt
+        this.micBtn.style.opacity = '1';
+        this.micBtn.classList.add('vogo-mic-btn--speaking');
         this.micBtn.classList.remove('vogo-mic-btn--recording', 'vogo-mic-btn--processing');
+      } else if (state === 'processing') {
+        this.micBtn.innerHTML = '&#8987;';   // ⌛
+        this.micBtn.title = 'Processing...';
+        this.micBtn.disabled = true;
+        this.micBtn.style.opacity = '0.5';
+        this.micBtn.classList.add('vogo-mic-btn--processing');
+        this.micBtn.classList.remove('vogo-mic-btn--recording', 'vogo-mic-btn--speaking');
+      } else {
+        this.micBtn.innerHTML = '&#127908;'; // 🎤
+        this.micBtn.title = 'Voice input';
+        this.micBtn.disabled = false;
+        this.micBtn.style.opacity = '1';
+        this.micBtn.classList.remove('vogo-mic-btn--recording', 'vogo-mic-btn--processing', 'vogo-mic-btn--speaking');
       }
     }
 

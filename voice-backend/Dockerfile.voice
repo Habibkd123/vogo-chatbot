@@ -1,0 +1,40 @@
+# =============================================================================
+# Dockerfile.voice — Vogo Voice Backend (Python FastAPI)
+# Includes: Faster-Whisper (STT) + Edge-TTS (TTS)
+# =============================================================================
+FROM python:3.11-slim
+
+# Install system dependencies (ffmpeg for audio processing, curl for health checks)
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy requirements and install Python packages
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Pre-download Whisper base model at build time (avoids cold-start delay)
+RUN python -c "from faster_whisper import WhisperModel; WhisperModel('base', device='cpu', compute_type='int8')" \
+    && echo "Whisper base model downloaded."
+
+# Copy application source
+COPY main.py .
+
+# Create temp directory for audio files
+RUN mkdir -p /app/tmp
+
+# Set environment variable to avoid OpenMP conflicts
+ENV KMP_DUPLICATE_LIB_OK=TRUE
+
+# Expose voice API port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:8000/ || exit 1
+
+# Start FastAPI server
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

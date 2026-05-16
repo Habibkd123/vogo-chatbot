@@ -1,0 +1,46 @@
+# =============================================================================
+# .dockerignore — Files excluded from Docker build context
+# =============================================================================
+
+# Git
+.git
+.gitignore
+.claude
+
+# Node.js
+node_modules
+npm-debug.log*
+
+# Python
+voice-backend/__pycache__
+voice-backend/*.pyc
+voice-backend/*.pyo
+
+# Environment files (never copy real .env into image)
+.env
+.env.local
+.env.production
+
+# Logs
+logs
+*.log
+
+# Test files
+tests
+
+# Docker files themselves (not needed inside container)
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Generated MP3 files from voice backend
+voice-backend/*.mp3
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode
+.idea
+*.swp
