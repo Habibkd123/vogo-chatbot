@@ -5,6 +5,17 @@
 
 ---
 
+## ✨ Key Features
+
+- **🧠 Multi-Model AI Engine**: Seamlessly switch between top-tier LLMs (Groq, OpenAI, Gemini, Claude, Llama 3) with intelligent fallback routing.
+- **🗣️ Advanced Voice Integration**: Built-in Speech-to-Text (Faster-Whisper) and Text-to-Speech (Edge-TTS) powered by a blazing-fast Python FastAPI backend.
+- **🎯 Smart Intent Detection**: Powered by Rasa NLU to detect intents, filter out gibberish, and route conversations perfectly.
+- **🔌 Vogo API Integration**: Connects directly to the Vogo WordPress REST API for live user authentication and data access.
+- **📩 Multi-Channel Alerts**: Built-in Email & SMS service integrations to keep users notified.
+- **🐳 Docker Ready**: 1-click deployment using Docker Compose (includes Node.js, Python, Rasa, and MySQL containers).
+
+---
+
 ## ✅ What You Need (Install These First)
 
 | Tool | Download | Why |
@@ -84,6 +95,33 @@ Keep both terminals open while using the chatbot.
 
 ---
 
+## 🐳 STEP 4 — Docker Deployment (Recommended for VPS/Server)
+
+If you are running this on a VPS (like Hostinger, AWS, DigitalOcean) or want to run everything together via Docker, you can use Docker Compose.
+
+Make sure you have **Docker** and **Docker Compose** installed.
+
+1. Ensure your `.env.docker` file has all required variables (it uses `.env` as a base but with docker service names).
+2. Open terminal in the project folder and run:
+
+```bash
+docker compose up --build -d
+```
+
+This will automatically build and start the:
+- Chatbot Server (Node.js)
+- Voice Backend (Python)
+- Rasa NLU
+- Local Ollama (if configured)
+- MySQL Database
+
+To view logs:
+```bash
+docker compose logs -f
+```
+
+---
+
 ## 🧪 Quick Test
 
 | Action | Expected |
@@ -107,4 +145,4 @@ Keep both terminals open while using the chatbot.
 
 ---
 
-*Node.js + Express + Groq AI + Python FastAPI + Edge-TTS + Faster-Whisper*
+*Node.js + Express + Groq AI + Python FastAPI + Edge-TTS + Faster-Whisper + Docker*
